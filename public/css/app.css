@@ -1,0 +1,61 @@
+#searchResultSection {
+  margin-top: 50px;
+  background-color: #eaeaea;
+  border-radius: 10px;
+  padding: 15px;
+  box-shadow: 10px 15px #4d4e4f;
+  margin-bottom: 25px;
+  max-width: 100%;
+}
+
+.itemRow {
+  margin-top: 5px;
+  margin-bottom: 5px;
+  border-bottom-color: 1px solid lightgrey;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  font-size: large;
+}
+
+.itemRow p {
+  vertical-align:50%;
+}
+
+.itemRow:not(:first-child) {
+  border-top: 1px solid lightgrey;
+}
+
+.itemRow:first-child, .addToPlaylist{
+  font-size: x-large;
+}
+
+#time {
+  font-size: medium;
+  white-space: nowrap;
+}
+
+body {
+  background-color: #a73131 !important;
+  font-family: 'Staatliches', cursive;
+  vertical-align: middle;
+}
+
+#topSection {
+  width: 100%;
+  margin-top: 20px;
+  border: 3px solid lightgrey;
+  border-radius: 15px;
+  padding-top: 20px;
+  padding-right: 50px;
+  padding-bottom: 20px;
+  padding-left: 50px;
+  display: none;
+}
+
+.header, .currentlyPlaying, .nextUp, .loginHeader, .notCurrentlyPlaying, #time {
+  color: #f4f4f4 !important;
+}
+
+.addToPlaylist {
+  border-radius: 25px;
+}
