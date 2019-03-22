@@ -98,7 +98,7 @@
         if (nextUp) {
           $('#nextUpSong').html(nextUp.track.name);
           $('#nextUpArtist').html(nextUp.track.artists[0].name);
-          $('.nextUp').fadeIn();
+          $('.nextUp').show();
         }
         break;
       }
@@ -192,6 +192,7 @@
   }
 
   function onReceiveSearchResults(response) {
+    $('.addToPlaylist').off('click'); // Get rid of any leftover handlers from previous searches
     var tracks = response.response.tracks;
     if(tracks) {
       var items = response.response.tracks.items;
