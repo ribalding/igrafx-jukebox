@@ -199,7 +199,7 @@ app.get('/callback', function(req, res) {
         res.redirect('/');
         setInterval(function() {
           updatePlaylistData();
-        }, 3000);
+        }, 60000);
       });
 
       var init = function() {
