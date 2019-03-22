@@ -28,21 +28,27 @@
             '{{#searchResults}}',
               '<button class="btn btn-success addToPlaylist">+</button>',
             '{{/searchResults}}',
+            '{{^searchResults}}',
+              '{{trackLength}}',
+            '{{/searchResults}}',
           '</div>',
         '</div>',
       '{{/tracks}}'
     ].join('')
   };
 
-  var playlist;
+  var playlistData;
+  var playlistIsVisible = false;
+  var currentlyPlaying;
 
   function setTimeRemaining(response) {
     var current_ms = response.progress_ms;
-    $('#time').html(millisToMinutesAndSeconds(current_ms) + ' / ' + millisToMinutesAndSeconds(response.item.duration_ms));
+    var duration_ms = response.item.duration_ms;
+    $('#time').html(millisToMinutesAndSeconds(current_ms) + ' / ' + millisToMinutesAndSeconds(duration_ms));
     var x = setInterval(function() {
       current_ms += 1000;
       if (current_ms <= response.item.duration_ms) {
-        $('#time').html(millisToMinutesAndSeconds(current_ms) + ' / ' + millisToMinutesAndSeconds(response.item.duration_ms));
+        $('#time').html(millisToMinutesAndSeconds(current_ms) + ' / ' + millisToMinutesAndSeconds(duration_ms));
       } else {
         clearInterval(x);
         updatePlayDisplay();
@@ -100,16 +106,14 @@
   }
 
   function onReceiveCurrentlyPlaying(response, isFirst) {
-    var currentlyPlaying = response.currentlyPlaying;
-    var playlistData = response.playlistData;
-    playlist = playlistData;
+    currentlyPlaying = response.currentlyPlaying;
+    playlistData = response.playlistData;
+    updateTopSection(currentlyPlaying, playlistData)
     if(isFirst) {
-      $('#topSection').effect('slide', {}, 1000, function() {
-        updateTopSection(currentlyPlaying, playlistData)
-      });
+      $('#topSection').effect('slide', {}, 1000);
     }
-    else {
-      updateTopSection(currentlyPlaying, playlistData);
+    if(playlistIsVisible) {
+      showPlaylist();
     }
   }
 
@@ -118,57 +122,55 @@
     if (currentlyPlaying.context && currentlyPlaying.is_playing && currentlyPlaying.context.href === playlistUrl) {
       $('#currentlyPlayingSong').html(currentlyPlaying.item.name);
       $('#currentlyPlayingArtist').html(currentlyPlaying.item.artists[0].name);
-      if (isFirst) {
-        $('.currentlyPlaying').fadeIn();
-      }
-      else {
-        $('.currentlyPlaying').show();
-      }
+      $('.currentlyPlaying').show();
       setTimeRemaining(currentlyPlaying);
       getNextTrack(playlistData.items, currentlyPlaying.item.id);
     }
     else {
-      if (isFirst) {
-        $('.notCurrentlyPlaying').fadeIn();
-      }
-       else {
-        $('.currentlyPlaying').hide();
-        $('.notCurrentlyPlaying').show();
-      }
+      $('.currentlyPlaying').hide();
+      $('.notCurrentlyPlaying').show();
     }
-    registerButtonListeners(playlist);
+    registerButtonListeners();
   };
-  
 
-  function registerButtonListeners(playlist) {
+
+  function registerButtonListeners() {
     $('#searchButton').on('click', function() {
       var searchString = $('#search').val().trim();
       search(searchString);
     });
 
     $('#viewPlaylist').on('click', function(){
-      if(playlist.items && playlist.items.length) {
-        showPlaylist(playlist.items);
+      if(playlistData.items && playlistData.items.length) {
+        showPlaylist();
+      }
+    });
+
+    $('#search').on('keydown', function(e){
+      if(e.which === 13) {
+        $('#searchButton').trigger('click');
       }
     });
   }
 
-  function cleanPlaylistData(items, currentlyPlaying) {
-    for(var i=0; i < items.length; i++) {
-      var item = items[i];
+  function cleanPlaylistData() {
+    for(var i=0; i < playlistData.items.length; i++) {
+      var item = playlistData.items[i];
       if(item.id === currentlyPlaying.id) {
         break;
       }
       else {
-        items.splice(i, 1);
+        playlistData.items.splice(i, 1);
       }
     }
   }
 
-  function showPlaylist(items) {
+  function showPlaylist() {
+    cleanPlaylistData();
+    playlistIsVisible = true;
     var $resultSection = $('#searchResultSection');
     var searchResultsHtml = Mustache.render(templates.trackList, {
-      tracks: mapTrackListData(items)
+      tracks: mapTrackListData(playlistData.items)
     });
     $resultSection.html(searchResultsHtml).show();
   }
@@ -183,32 +185,32 @@
         trackId: item.id,
         albumArtUrl: !!thumbnail ? thumbnail.url : null,
         artistName: item.artists[0].name,
-        trackName: item.name
+        trackName: item.name,
+        trackLength: millisToMinutesAndSeconds(item.duration_ms)
       }
     });
   }
 
   function onReceiveSearchResults(response) {
-    var items = response.response.tracks.items;
-    var $resultSection = $('#searchResultSection');
-    var searchResultsHtml = Mustache.render(templates.trackList, {
-      tracks: mapTrackListData(items),
-      searchResults: true
-    });
-    $resultSection.html(searchResultsHtml).show();
-    $('.addToPlaylist').on('click', function() {
-      var trackId = $(this).closest('.itemRow').attr('data-track-id');
-      var idString = 'spotify:track:' + trackId;
-      addToPlaylist(idString, $(this));
-    });
+    var tracks = response.response.tracks;
+    if(tracks) {
+      var items = response.response.tracks.items;
+      var $resultSection = $('#searchResultSection');
+      var searchResultsHtml = Mustache.render(templates.trackList, {
+        tracks: mapTrackListData(items),
+        searchResults: true
+      });
+      $resultSection.html(searchResultsHtml).show();
+      playlistIsVisible = false;
+      $('.addToPlaylist').on('click', function() {
+        var trackId = $(this).closest('.itemRow').attr('data-track-id');
+        var idString = 'spotify:track:' + trackId;
+        addToPlaylist(idString, $(this));
+      });
+    }
   }
 
   $(document).ready(function() {
-      updatePlayDisplay(true);
-      $('#search').on('keydown', function(e){
-        if(e.which === 13) {
-          $('#searchButton').trigger('click');
-        }
-      });
+    updatePlayDisplay(true);
   })
 })();
