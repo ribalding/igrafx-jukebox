@@ -5,7 +5,6 @@ var querystring = require('querystring');
 var cookieParser = require('cookie-parser');
 var http = require('http').Server(express);
 var io = require('socket.io')(http);
-console.log(io);
 var client_id = 'ca7a77180878452a93bde76fa726333b'; // Your client id
 var client_secret = 'a0435d5c26ac4b2e9fcd6e4c49a06136'; // Your secret
 var redirect_uri = 'http://localhost:8888/callback'; // Your redirect uri
@@ -53,18 +52,6 @@ app.get('/callback', function(req, res) {
         'Authorization': 'Bearer ' + access_token
       };
 
-      var playlistOptions = {
-        url: 'https://api.spotify.com/v1/playlists/3KtyHb6OPldYjyU4yzngi1/tracks',
-        headers: headers,
-        json: true
-      };
-
-      var currentlyPlayingOptions = {
-        url: 'https://api.spotify.com/v1/me/player/currently-playing?market=us',
-        headers: headers,
-        json: true
-      };
-
       var getSearchOptions = function(searchString) {
         return {
           url: 'https://api.spotify.com/v1/search?q=' + encodeURIComponent(searchString) + '&type=track',
@@ -82,7 +69,7 @@ app.get('/callback', function(req, res) {
       }
 
       var currentlyPlayingIsSecondToLastTrack = function(currentlyPlaying, playlist) {
-        if(playlist.items.length && playlist.items.length > 2) {
+        if (playlist.items.length && playlist.items.length > 2) {
           return currentlyPlaying.item.id === playlist.items[playlist.items.length - 2].track.id;
         }
         return true;
@@ -103,6 +90,34 @@ app.get('/callback', function(req, res) {
           randomTrackData = body.tracks.items[0];
           var idString = "spotify:track:" + body.tracks.items[0].id;
           addTrackToPlaylist(idString, callback);
+        });
+      }
+
+      function getCurrentlyPlaying(callback) {
+        var currentlyPlayingOptions = {
+          url: 'https://api.spotify.com/v1/me/player/currently-playing?market=us',
+          headers: headers,
+          json: true
+        };
+
+        request.get(currentlyPlayingOptions, function(error, response, body) {
+          if(callback) {
+            callback(error, response, body);
+          }
+        });
+      }
+
+      function getPlaylistData(callback) {
+        var playlistOptions = {
+          url: 'https://api.spotify.com/v1/playlists/3KtyHb6OPldYjyU4yzngi1/tracks',
+          headers: headers,
+          json: true
+        };
+
+        request.get(playlistOptions, function (error, response, body) {
+          if(callback) {
+            callback(error, response, body);
+          }
         });
       }
 
@@ -129,6 +144,19 @@ app.get('/callback', function(req, res) {
         });
       }
 
+      function getTracksToBeRemoved(currentlyPlaying, playlistData) {
+        var toBeRemoved = [];
+        for (var i = 0; i < playlistData.items.length; i++) {
+          var item = playlistData.items[i];
+          var trackId = item.track.id;
+          if (trackId === currentlyPlaying.item.id) {
+            break;
+          }
+          toBeRemoved.push(trackId);
+        }
+        return toBeRemoved;
+      }
+
       function getUrlForRandomSong() {
         var searchStringArray = ['%25a%25', 'a%25', '%25e%25', 'e%25', '%25i%25', 'i%25', '%25o%25', 'o%25'];
         var randomSearchString = searchStringArray[Math.floor(Math.random() * 8)];
@@ -138,34 +166,27 @@ app.get('/callback', function(req, res) {
 
       var randomTrackData;
       var updatePlaylistData = function(callback) {
-        request.get(currentlyPlayingOptions, function(cpError, cpResponse, cpBody) {
-          var currentlyPlaying = cpBody;
-          request.get(playlistOptions, function(plError, plResponse, plBody) {
-            var playlistData = plBody;
-            var toBeRemoved = [];
-            if(playlistData.items) {
-              for (var i = 0; i < playlistData.items.length; i++) {
-                var item = playlistData.items[i];
-                if (item.track.id === currentlyPlaying.item.id) {
-                  break;
+        getCurrentlyPlaying(function(cpError, cpResponse, currentlyPlaying) {
+          getPlaylistData(function(plError, plResponse, playlistData) {
+            if (playlistData && playlistData.items) {
+              var toBeRemoved = [];
+              if (playlistData.items.length) {
+                var toBeRemoved = getTracksToBeRemoved(currentlyPlaying, playlistData);
+                if (toBeRemoved.length) {
+                  removePlayedTracks(toBeRemoved);
                 }
-                toBeRemoved.push(item.track.id);
               }
-              if(toBeRemoved.length) {
-                removePlayedTracks(toBeRemoved);
-              }
-            }
-            if (currentlyPlayingIsSecondToLastTrack(currentlyPlaying, playlistData)) {
-              addRandomTrackToPlaylist(function(error, response, body) {
-                playlistData.items.push({
-                  track: randomTrackData
+              if (currentlyPlayingIsSecondToLastTrack(currentlyPlaying, playlistData)) {
+                addRandomTrackToPlaylist(function(error, response, body) {
+                  playlistData.items.push({
+                    track: randomTrackData
+                  });
+                  if (callback) {
+                    callback(currentlyPlaying, playlistData);
+                  }
                 });
-                if(callback) {
-                  callback(currentlyPlaying, playlistData);
-                }
-              });
-            } else {
-              if(callback) {
+              }
+              else if (callback) {
                 callback(currentlyPlaying, playlistData);
               }
             }
@@ -173,17 +194,17 @@ app.get('/callback', function(req, res) {
         });
       }
 
-      updatePlaylistData(function(){
+      updatePlaylistData(function(currentlyPlaying, playlistData) {
         init();
         res.redirect('/');
         setInterval(function() {
           updatePlaylistData();
-        }, 60000);
+        }, 3000);
       });
 
       var init = function() {
         app.get('/jukebox', function(req, jukeboxResponse) {
-          updatePlaylistData(function(currentlyPlaying, playlistData){
+          updatePlaylistData(function(currentlyPlaying, playlistData) {
             jukeboxResponse.send({
               currentlyPlaying: currentlyPlaying,
               playlistData: playlistData

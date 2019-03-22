@@ -1,20 +1,6 @@
 (function() {
-  function setTimeRemaining(response) {
-    var current_ms = response.progress_ms;
-    $('#time').html(millisToMinutesAndSeconds(current_ms) + ' / ' + millisToMinutesAndSeconds(response.item.duration_ms));
-    var x = setInterval(function() {
-      current_ms += 1000;
-      if (current_ms <= response.item.duration_ms) {
-        $('#time').html(millisToMinutesAndSeconds(current_ms) + ' / ' + millisToMinutesAndSeconds(response.item.duration_ms));
-      } else {
-        clearInterval(x);
-        updatePlayDisplay();
-      }
-    }, 1000);
-  }
-
   var templates = {
-    searchResults: [
+    trackList: [
       '<div class="row itemRow">',
         '<div class="col-md-1"></div>',
         '<div class="col-md-3">',
@@ -39,12 +25,30 @@
             '<p>{{trackName}}</p>',
           '</div>',
           '<div class="col-md-1">',
-            '<button class="btn btn-success addToPlaylist">+</button>',
+            '{{#searchResults}}',
+              '<button class="btn btn-success addToPlaylist">+</button>',
+            '{{/searchResults}}',
           '</div>',
         '</div>',
       '{{/tracks}}'
     ].join('')
   };
+
+  var playlist;
+
+  function setTimeRemaining(response) {
+    var current_ms = response.progress_ms;
+    $('#time').html(millisToMinutesAndSeconds(current_ms) + ' / ' + millisToMinutesAndSeconds(response.item.duration_ms));
+    var x = setInterval(function() {
+      current_ms += 1000;
+      if (current_ms <= response.item.duration_ms) {
+        $('#time').html(millisToMinutesAndSeconds(current_ms) + ' / ' + millisToMinutesAndSeconds(response.item.duration_ms));
+      } else {
+        clearInterval(x);
+        updatePlayDisplay();
+      }
+    }, 1000);
+  }
 
   function millisToMinutesAndSeconds(millis) {
     var minutes = Math.floor(millis / 60000);
@@ -98,6 +102,7 @@
   function onReceiveCurrentlyPlaying(response, isFirst) {
     var currentlyPlaying = response.currentlyPlaying;
     var playlistData = response.playlistData;
+    playlist = playlistData;
     if(isFirst) {
       $('#topSection').effect('slide', {}, 1000, function() {
         updateTopSection(currentlyPlaying, playlistData)
@@ -109,10 +114,11 @@
   }
 
   function updateTopSection(currentlyPlaying, playlistData, isFirst) {
-    if (currentlyPlaying.context && currentlyPlaying.context.href === 'https://api.spotify.com/v1/playlists/3KtyHb6OPldYjyU4yzngi1') {
+    var playlistUrl = 'https://api.spotify.com/v1/playlists/3KtyHb6OPldYjyU4yzngi1';
+    if (currentlyPlaying.context && currentlyPlaying.is_playing && currentlyPlaying.context.href === playlistUrl) {
       $('#currentlyPlayingSong').html(currentlyPlaying.item.name);
       $('#currentlyPlayingArtist').html(currentlyPlaying.item.artists[0].name);
-      if(isFirst) {
+      if (isFirst) {
         $('.currentlyPlaying').fadeIn();
       }
       else {
@@ -120,26 +126,62 @@
       }
       setTimeRemaining(currentlyPlaying);
       getNextTrack(playlistData.items, currentlyPlaying.item.id);
-    } else {
-      if(isFirst){
+    }
+    else {
+      if (isFirst) {
         $('.notCurrentlyPlaying').fadeIn();
       }
-      else {
+       else {
         $('.currentlyPlaying').hide();
         $('.notCurrentlyPlaying').show();
       }
     }
+    registerButtonListeners(playlist);
+  };
+  
+
+  function registerButtonListeners(playlist) {
     $('#searchButton').on('click', function() {
       var searchString = $('#search').val().trim();
       search(searchString);
     });
+
+    $('#viewPlaylist').on('click', function(){
+      if(playlist.items && playlist.items.length) {
+        showPlaylist(playlist.items);
+      }
+    });
   }
 
-  function mapSearchResultsData(items) {
+  function cleanPlaylistData(items, currentlyPlaying) {
+    for(var i=0; i < items.length; i++) {
+      var item = items[i];
+      if(item.id === currentlyPlaying.id) {
+        break;
+      }
+      else {
+        items.splice(i, 1);
+      }
+    }
+  }
+
+  function showPlaylist(items) {
+    var $resultSection = $('#searchResultSection');
+    var searchResultsHtml = Mustache.render(templates.trackList, {
+      tracks: mapTrackListData(items)
+    });
+    $resultSection.html(searchResultsHtml).show();
+  }
+
+  function mapTrackListData(items) {
     return items.map(function(item){
+      if(item.track) {
+        item = item.track;
+      }
+      var thumbnail = item.album.images[2];
       return {
         trackId: item.id,
-        albumArtUrl: !!item.album.images[2] ? item.album.images[2].url : null,
+        albumArtUrl: !!thumbnail ? thumbnail.url : null,
         artistName: item.artists[0].name,
         trackName: item.name
       }
@@ -149,8 +191,9 @@
   function onReceiveSearchResults(response) {
     var items = response.response.tracks.items;
     var $resultSection = $('#searchResultSection');
-    var searchResultsHtml = Mustache.render(templates.searchResults, {
-      tracks: mapSearchResultsData(items)
+    var searchResultsHtml = Mustache.render(templates.trackList, {
+      tracks: mapTrackListData(items),
+      searchResults: true
     });
     $resultSection.html(searchResultsHtml).show();
     $('.addToPlaylist').on('click', function() {
