@@ -165,12 +165,13 @@ app.get('/callback', function(req, res) {
       }
 
       var randomTrackData;
+      var playlistUrl = 'https://api.spotify.com/v1/playlists/3KtyHb6OPldYjyU4yzngi1';
       var updatePlaylistData = function(callback) {
         getCurrentlyPlaying(function(cpError, cpResponse, currentlyPlaying) {
           getPlaylistData(function(plError, plResponse, playlistData) {
-            if (playlistData && playlistData.items) {
+            if (currentlyPlaying && playlistData && playlistData.items) {
               var toBeRemoved = [];
-              if (playlistData.items.length) {
+              if (currentlyPlaying && playlistData.items.length && currentlyPlaying.is_playing && currentlyPlaying.context.href === playlistUrl) {
                 var toBeRemoved = getTracksToBeRemoved(currentlyPlaying, playlistData);
                 if (toBeRemoved.length) {
                   removePlayedTracks(toBeRemoved);
@@ -199,7 +200,7 @@ app.get('/callback', function(req, res) {
         res.redirect('/');
         setInterval(function() {
           updatePlaylistData();
-        }, 60000);
+        }, 5000);
       });
 
       var init = function() {
