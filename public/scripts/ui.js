@@ -14,7 +14,8 @@ define(['jquery', 'mustache', 'datalayer', 'tracklistsection', 'util'], function
       current_ms += 1000;
       if (current_ms <= response.item.duration_ms) {
         $('#time').html(Util.millisToMinutesAndSeconds(current_ms) + ' / ' + Util.millisToMinutesAndSeconds(duration_ms));
-      } else {
+      }
+      else {
         clearInterval(x);
         updatePlayDisplay();
       }
