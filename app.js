@@ -9,8 +9,9 @@ var client_id = 'ca7a77180878452a93bde76fa726333b'; // Your client id
 var client_secret = 'a0435d5c26ac4b2e9fcd6e4c49a06136'; // Your secret
 var redirect_uri = 'http://localhost:8888/callback'; // Your redirect uri
 var loader = require('./init');
+var sql = require('mssql');
 
-loader.start();
+// loader.start();
 var app = express();
 
 app.use(express.static(__dirname + '/public'))
@@ -52,6 +53,13 @@ app.get('/callback', function(req, res) {
       var playlistData;
       var headers = {
         'Authorization': 'Bearer ' + access_token
+      };
+
+      var sqlConfig = {
+        user: 'fred',
+        password: 'bedrock',
+        server: 'localhost', // You can use 'localhost\\instance' to connect to named instance
+        database: 'igrafx_jukebox',
       };
 
       var getSearchOptions = function(searchString) {

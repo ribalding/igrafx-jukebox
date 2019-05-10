@@ -96,6 +96,6 @@ define(['jquery', 'mustache', 'datalayer', 'tracklistsection', 'util'], function
     dataLayer = new DataLayer();
     trackListSection = new TrackListSection(dataLayer);
     updatePlayDisplay(true);
-  })
+  });
 
 });

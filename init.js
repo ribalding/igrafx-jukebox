@@ -1,5 +1,5 @@
 
-exports.start = function(){
+exports.start = function(error, response, body){
   if (!error && response.statusCode === 200) {
     var access_token = body.access_token;
     var refresh_token = body.refresh_token;
@@ -197,8 +197,8 @@ exports.start = function(){
     //     error: 'invalid_token'
     //   }));
   }
-});
-});
+
+// });
 
 // app.get('/refresh_token', function(req, res) {
 
