@@ -50,7 +50,6 @@ body {
   padding-right: 50px;
   padding-bottom: 20px;
   padding-left: 50px;
-  display: none;
 }
 
 .header, .currentlyPlaying, .nextUp, .loginHeader, .notCurrentlyPlaying, #time {

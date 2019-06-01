@@ -8,7 +8,10 @@ var io = require('socket.io')(http);
 var client_id = 'ca7a77180878452a93bde76fa726333b'; // Your client id
 var client_secret = 'a0435d5c26ac4b2e9fcd6e4c49a06136'; // Your secret
 var redirect_uri = 'http://localhost:8888/callback'; // Your redirect uri
+var loader = require('./init');
+var sql = require('mssql');
 
+// loader.start();
 var app = express();
 
 app.use(express.static(__dirname + '/public'))
@@ -52,6 +55,13 @@ app.get('/callback', function(req, res) {
         'Authorization': 'Bearer ' + access_token
       };
 
+      var sqlConfig = {
+        user: 'fred',
+        password: 'bedrock',
+        server: 'localhost', // You can use 'localhost\\instance' to connect to named instance
+        database: 'igrafx_jukebox',
+      };
+
       var getSearchOptions = function(searchString) {
         return {
           url: 'https://api.spotify.com/v1/search?q=' + encodeURIComponent(searchString) + '&type=track',
@@ -69,8 +79,9 @@ app.get('/callback', function(req, res) {
       }
 
       var currentlyPlayingIsSecondToLastTrack = function(currentlyPlaying, playlist) {
-        if (playlist.items.length && playlist.items.length > 2) {
-          return currentlyPlaying.item.id === playlist.items[playlist.items.length - 2].track.id;
+        var tracks = playlist.items
+        if (tracks.length && tracks.length > 2) {
+          return currentlyPlaying.item.id === tracks[tracks.length - 2].track.id;
         }
         return true;
       }
@@ -165,12 +176,13 @@ app.get('/callback', function(req, res) {
       }
 
       var randomTrackData;
+      var playlistUrl = 'https://api.spotify.com/v1/playlists/3KtyHb6OPldYjyU4yzngi1';
       var updatePlaylistData = function(callback) {
         getCurrentlyPlaying(function(cpError, cpResponse, currentlyPlaying) {
           getPlaylistData(function(plError, plResponse, playlistData) {
-            if (playlistData && playlistData.items) {
+            if (currentlyPlaying && playlistData && playlistData.items) {
               var toBeRemoved = [];
-              if (playlistData.items.length) {
+              if (currentlyPlaying && playlistData.items.length && currentlyPlaying.is_playing && currentlyPlaying.context.href === playlistUrl) {
                 var toBeRemoved = getTracksToBeRemoved(currentlyPlaying, playlistData);
                 if (toBeRemoved.length) {
                   removePlayedTracks(toBeRemoved);
@@ -199,7 +211,7 @@ app.get('/callback', function(req, res) {
         res.redirect('/');
         setInterval(function() {
           updatePlaylistData();
-        }, 60000);
+        }, 5000);
       });
 
       var init = function() {
