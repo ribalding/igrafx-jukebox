@@ -21,11 +21,13 @@ define(['jquery', 'mustache'], function($, Mustache){
       });
     },
 
-    addToPlaylist: function(idString, callback) {
+    addToPlaylist: function(idString, artist, title, callback) {
       $.ajax({
         url: '/add',
         data: {
-          idString: idString
+          idString: idString,
+          artist: artist,
+          title: title
         }
       }).done(function(response) {
         callback(response);

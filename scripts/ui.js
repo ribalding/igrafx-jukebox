@@ -1,10 +1,13 @@
-define(['jquery', 'mustache', 'datalayer', 'tracklistsection', 'util'], function($, Mustache, DataLayer, TrackListSection, Util){
-
+define(['jquery', 'mustache', 'datalayer', 'tracklistsection', 'util', 'socketio'], function($, Mustache, DataLayer, TrackListSection, Util, io){
+  var socket = io();
   var playlistData;
-  var playlistIsVisible = false;
   var currentlyPlaying;
   var dataLayer;
   var trackListSection;
+
+  socket.on('update playlist', function(data){
+    updatePlayDisplay(data);
+  });
 
   function setTimeRemaining(response) {
     var current_ms = response.progress_ms;
@@ -22,18 +25,22 @@ define(['jquery', 'mustache', 'datalayer', 'tracklistsection', 'util'], function
     }, 1000);
   }
 
-  function updatePlayDisplay(isFirst) {
-    dataLayer.getJukeboxData(function(response) {
-      currentlyPlaying = response.currentlyPlaying;
-      playlistData = response.playlistData;
-      updateTopSection(currentlyPlaying, playlistData)
-      if(isFirst) {
-        $('#topSection').show();
+  function updatePlayDisplay(data) {
+    if(data) {
+      currentlyPlaying = data.currentlyPlaying;
+      playlistData = data.playlistData;
+      updateTopSection(currentlyPlaying, playlistData);
+      if(trackListSection.playlistIsVisible) {
+        trackListSection.displayPlaylist(playlistData);
       }
-      if(playlistIsVisible) {
-        showPlaylist();
-      }
-    });
+    }
+    else {
+      dataLayer.getJukeboxData(function(response) {
+        currentlyPlaying = response.currentlyPlaying;
+        playlistData = response.playlistData;
+        updateTopSection(currentlyPlaying, playlistData);
+      });
+    }
   }
 
   function search(searchString) {
@@ -56,11 +63,12 @@ define(['jquery', 'mustache', 'datalayer', 'tracklistsection', 'util'], function
       }
     };
   }
-  function updateTopSection(currentlyPlaying, playlistData, isFirst) {
+  function updateTopSection(currentlyPlaying, playlistData) {
     var playlistUrl = 'https://api.spotify.com/v1/playlists/3KtyHb6OPldYjyU4yzngi1';
     if (currentlyPlaying.context && currentlyPlaying.is_playing && currentlyPlaying.context.href === playlistUrl) {
       $('#currentlyPlayingSong').html(currentlyPlaying.item.name);
       $('#currentlyPlayingArtist').html(currentlyPlaying.item.artists[0].name);
+      $('#currentlyPlayingImage').attr('src', currentlyPlaying.item.album.images[1].url);
       $('.currentlyPlaying').show();
       setTimeRemaining(currentlyPlaying);
       getNextTrack(playlistData.items, currentlyPlaying.item.id);
@@ -95,7 +103,7 @@ define(['jquery', 'mustache', 'datalayer', 'tracklistsection', 'util'], function
   $(document).ready(function() {
     dataLayer = new DataLayer();
     trackListSection = new TrackListSection(dataLayer);
-    updatePlayDisplay(true);
+    updatePlayDisplay();
   });
 
 });

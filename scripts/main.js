@@ -4,7 +4,15 @@
 // except for 'app' ones, which are in a sibling
 // directory.
 requirejs.config({
-    baseUrl: 'scripts'
+    baseUrl: 'scripts',
+    shim: {
+      'socketio': {
+        exports: 'io'
+      }
+    },
+    paths: {
+      socketio: '../node_modules/socket.io-client/dist/socket.io',
+    }
 });
 
 // Start loading the main app file. Put all of

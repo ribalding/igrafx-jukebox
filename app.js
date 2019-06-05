@@ -1,24 +1,30 @@
 var express = require('express'); // Express web server framework
+var app = express();
 var request = require('request'); // "Request" library
 var cors = require('cors');
 var querystring = require('querystring');
 var cookieParser = require('cookie-parser');
-var http = require('http').Server(express);
+var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var client_id = 'ca7a77180878452a93bde76fa726333b'; // Your client id
 var client_secret = 'a0435d5c26ac4b2e9fcd6e4c49a06136'; // Your secret
 var redirect_uri = 'http://localhost:8888/callback'; // Your redirect uri
-var loader = require('./init');
 var sql = require('mssql');
 
-// loader.start();
-var app = express();
+var addTrackQuery = "INSERT INTO history (SpotifyId, [TrackTitle], [TrackArtist]) VALUES (@spotify_id, @track_title, @track_artist)";
 
-app.use(express.static(__dirname + '/public'))
+console.log('Listening on 8888');
+http.listen(8888);
+
+io.on('connection', function(socket){
+  console.log('a user connected');
+});
+
+app.use(express.static(__dirname))
   .use(cors())
   .use(cookieParser());
 
-app.get('/login', function(req, res) {
+app.get('/login', function (req, res) {
   var scope = 'user-read-private user-read-email user-read-currently-playing user-library-read playlist-modify-public playlist-modify-private playlist-modify';
   res.redirect('https://accounts.spotify.com/authorize?' +
     querystring.stringify({
@@ -29,8 +35,7 @@ app.get('/login', function(req, res) {
     }));
 });
 
-app.get('/callback', function(req, res) {
-
+app.get('/callback', function (req, res) {
   var code = req.query.code || null;
   var authOptions = {
     url: 'https://accounts.spotify.com/api/token',
@@ -45,15 +50,12 @@ app.get('/callback', function(req, res) {
     json: true
   };
 
-  request.post(authOptions, function(error, response, body) {
+  request.post(authOptions, function (error, response, body) {
     if (!error && response.statusCode === 200) {
       var access_token = body.access_token;
       var refresh_token = body.refresh_token;
-      var currentlyPlaying;
-      var playlistData;
-      var headers = {
-        'Authorization': 'Bearer ' + access_token
-      };
+
+      var spotifyLayer = require('./spotifylayer')(access_token, request);
 
       var sqlConfig = {
         user: 'fred',
@@ -62,134 +64,34 @@ app.get('/callback', function(req, res) {
         database: 'igrafx_jukebox',
       };
 
-      var getSearchOptions = function(searchString) {
-        return {
-          url: 'https://api.spotify.com/v1/search?q=' + encodeURIComponent(searchString) + '&type=track',
-          headers: headers,
-          json: true
+      var addTrackToHistory = function (pool, idString, trackTitle, trackArtist) {
+        try {
+          pool.request()
+            .input('spotify_id', sql.NVarChar(255), idString)
+            .input('track_title', sql.NVarChar(255), trackTitle)
+            .input('track_artist', sql.NVarChar(255), trackArtist)
+            .query(addTrackQuery);
+        } catch (err) {
+          // TODO
         }
-      };
-
-      var getAddToPlaylistOptions = function(idString) {
-        return {
-          url: 'https://api.spotify.com/v1/playlists/3KtyHb6OPldYjyU4yzngi1/tracks?uris=' + encodeURIComponent(idString),
-          headers: headers,
-          json: true
-        }
-      }
-
-      var currentlyPlayingIsSecondToLastTrack = function(currentlyPlaying, playlist) {
-        var tracks = playlist.items
-        if (tracks.length && tracks.length > 2) {
-          return currentlyPlaying.item.id === tracks[tracks.length - 2].track.id;
-        }
-        return true;
-      }
-
-      function addTrackToPlaylist(idString, callback) {
-        var options = getAddToPlaylistOptions(idString);
-        request.post(options, callback);
-      }
-
-      function addRandomTrackToPlaylist(callback) {
-        var options = {
-          url: getUrlForRandomSong(),
-          headers: headers,
-          json: true
-        }
-        request.get(options, function(error, response, body) {
-          randomTrackData = body.tracks.items[0];
-          var idString = "spotify:track:" + body.tracks.items[0].id;
-          addTrackToPlaylist(idString, callback);
-        });
-      }
-
-      function getCurrentlyPlaying(callback) {
-        var currentlyPlayingOptions = {
-          url: 'https://api.spotify.com/v1/me/player/currently-playing?market=us',
-          headers: headers,
-          json: true
-        };
-
-        request.get(currentlyPlayingOptions, function(error, response, body) {
-          if(callback) {
-            callback(error, response, body);
-          }
-        });
-      }
-
-      function getPlaylistData(callback) {
-        var playlistOptions = {
-          url: 'https://api.spotify.com/v1/playlists/3KtyHb6OPldYjyU4yzngi1/tracks',
-          headers: headers,
-          json: true
-        };
-
-        request.get(playlistOptions, function (error, response, body) {
-          if(callback) {
-            callback(error, response, body);
-          }
-        });
-      }
-
-      function removePlayedTracks(toBeRemoved) {
-        var options = {
-          url: 'https://api.spotify.com/v1/playlists/3KtyHb6OPldYjyU4yzngi1/tracks',
-          headers: headers,
-          json: true,
-          body: {
-            tracks: getDataForTrackRemoval(toBeRemoved)
-          },
-          contentType: 'application/json',
-        }
-        request.delete(options, function(error, response, body) {
-          console.log(body)
-        });
-      }
-
-      function getDataForTrackRemoval(toBeRemoved) {
-        return toBeRemoved.map(function(item) {
-          return {
-            uri: "spotify:track:" + item
-          }
-        });
-      }
-
-      function getTracksToBeRemoved(currentlyPlaying, playlistData) {
-        var toBeRemoved = [];
-        for (var i = 0; i < playlistData.items.length; i++) {
-          var item = playlistData.items[i];
-          var trackId = item.track.id;
-          if (trackId === currentlyPlaying.item.id) {
-            break;
-          }
-          toBeRemoved.push(trackId);
-        }
-        return toBeRemoved;
-      }
-
-      function getUrlForRandomSong() {
-        var searchStringArray = ['%25a%25', 'a%25', '%25e%25', 'e%25', '%25i%25', 'i%25', '%25o%25', 'o%25'];
-        var randomSearchString = searchStringArray[Math.floor(Math.random() * 8)];
-        var randomOffset = Math.floor(Math.random() * 1000) + 1;
-        return "https://api.spotify.com/v1/search?query=" + randomSearchString + "&offset=" + randomOffset + "&limit=1&type=track&market=US";
       }
 
       var randomTrackData;
       var playlistUrl = 'https://api.spotify.com/v1/playlists/3KtyHb6OPldYjyU4yzngi1';
-      var updatePlaylistData = function(callback) {
-        getCurrentlyPlaying(function(cpError, cpResponse, currentlyPlaying) {
-          getPlaylistData(function(plError, plResponse, playlistData) {
+      var updatePlaylistData = function (callback) {
+        spotifyLayer.getCurrentlyPlaying(function (cpError, cpResponse, currentlyPlaying) {
+          spotifyLayer.getPlaylistData(function (plError, plResponse, playlistData) {
             if (currentlyPlaying && playlistData && playlistData.items) {
               var toBeRemoved = [];
               if (currentlyPlaying && playlistData.items.length && currentlyPlaying.is_playing && currentlyPlaying.context.href === playlistUrl) {
-                var toBeRemoved = getTracksToBeRemoved(currentlyPlaying, playlistData);
+                var toBeRemoved = spotifyLayer.getTracksToBeRemoved(currentlyPlaying, playlistData);
                 if (toBeRemoved.length) {
-                  removePlayedTracks(toBeRemoved);
+                  spotifyLayer.removePlayedTracks(toBeRemoved);
                 }
               }
-              if (currentlyPlayingIsSecondToLastTrack(currentlyPlaying, playlistData)) {
-                addRandomTrackToPlaylist(function(error, response, body) {
+              // Add a random track if we are on the second to last track in the playlist
+              if (spotifyLayer.currentlyPlayingIsSecondToLastTrack(currentlyPlaying, playlistData)) {
+                spotifyLayer.addRandomTrackToPlaylist(function (error, response, body) {
                   playlistData.items.push({
                     track: randomTrackData
                   });
@@ -206,42 +108,50 @@ app.get('/callback', function(req, res) {
         });
       }
 
-      updatePlaylistData(function(currentlyPlaying, playlistData) {
+      updatePlaylistData(function (currentlyPlaying, playlistData) {
         init();
         res.redirect('/');
-        setInterval(function() {
+        setInterval(function () {
           updatePlaylistData();
         }, 5000);
       });
 
-      var init = function() {
-        app.get('/jukebox', function(req, jukeboxResponse) {
-          updatePlaylistData(function(currentlyPlaying, playlistData) {
-            jukeboxResponse.send({
-              currentlyPlaying: currentlyPlaying,
-              playlistData: playlistData
+      var init = function () {
+          sql.connect(sqlConfig).then(pool => {
+            app.get('/jukebox', function (req, jukeboxResponse) {
+              updatePlaylistData(function (currentlyPlaying, playlistData) {
+                jukeboxResponse.send({
+                  currentlyPlaying: currentlyPlaying,
+                  playlistData: playlistData
+                });
+              })
             });
-          })
-        });
 
-        app.get('/search', function(req, res) {
-          var searchString = req.query.searchString;
-          var options = getSearchOptions(searchString);
-          request.get(options, function(error, response, body) {
-            res.send({
-              response: body
+            app.get('/search', function (req, res) {
+              var searchString = req.query.searchString;
+              var options = spotifyLayer.getSearchOptions(searchString);
+              request.get(options, function (error, response, body) {
+                res.send({
+                  response: body
+                });
+              });
+            });
+
+            app.get('/add', function (req, res) {
+              var idString = req.query.idString;
+              var artist = req.query.artist;
+              var track = req.query.title;
+              spotifyLayer.addTrackToPlaylist(idString, function (error, response, body) {
+                res.send({
+                  response: body
+                });
+                addTrackToHistory(pool, idString, track, artist);
+                updatePlaylistData(function (currentlyPlaying, playlistData) {
+                  io.emit('update playlist', {currentlyPlaying: currentlyPlaying, playlistData: playlistData});
+                });
+              });
             });
           });
-        });
-
-        app.get('/add', function(req, res) {
-          var idString = req.query.idString;
-          addTrackToPlaylist(idString, function(error, response, body) {
-            res.send({
-              response: body
-            });
-          });
-        });
       }
 
     } else {
@@ -278,6 +188,3 @@ app.get('/callback', function(req, res) {
 //     }
 //   });
 // });
-
-console.log('Listening on 8888');
-app.listen(8888);

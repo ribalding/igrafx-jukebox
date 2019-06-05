@@ -20,10 +20,10 @@ define(['jquery', 'mustache', 'datalayer', 'util'], function($, Mustache, DataLa
             '{{/albumArtUrl}}',
           '</div>',
           '<div class="col-md-3">',
-            '<p>{{artistName}}</p>',
+            '<p class="artistName">{{artistName}}</p>',
           '</div>',
           '<div class="col-md-7">',
-            '<p>{{trackName}}</p>',
+            '<p class="trackName">{{trackName}}</p>',
           '</div>',
           '<div class="col-md-1">',
             '{{#searchResults}}',
@@ -47,10 +47,10 @@ define(['jquery', 'mustache', 'datalayer', 'util'], function($, Mustache, DataLa
   TrackListSection.prototype = {
     displayPlaylist: function(playlistData) {
       this.playlistIsVisible = true;
-      var searchResultsHtml = Mustache.render(templates.trackList, {
+      var playlistHtml = Mustache.render(templates.trackList, {
         tracks: this.mapTrackListData(playlistData.items)
       });
-      this.$trackListSection.html(searchResultsHtml).show();
+      this.$trackListSection.html(playlistHtml).show();
     },
 
     displaySearchResults: function(response) {
@@ -58,7 +58,7 @@ define(['jquery', 'mustache', 'datalayer', 'util'], function($, Mustache, DataLa
       $('.addToPlaylist').off('click'); // Get rid of any leftover handlers from previous searches
       var tracks = response.response.tracks;
       if (tracks) {
-        var items = response.response.tracks.items;
+        var items = tracks.items;
         var searchResultsHtml = Mustache.render(templates.trackList, {
           tracks: this.mapTrackListData(items),
           searchResults: true
@@ -67,9 +67,12 @@ define(['jquery', 'mustache', 'datalayer', 'util'], function($, Mustache, DataLa
         this.playlistIsVisible = false;
         $('.addToPlaylist').on('click', function() {
           var $button = $(this);
-          var trackId = $button.closest('.itemRow').attr('data-track-id');
+          var $row = $button.closest('.itemRow');
+          var trackId = $row.attr('data-track-id');
           var idString = 'spotify:track:' + trackId;
-          self.dataLayer.addToPlaylist(idString, function(){
+          var artist = $button.closest('.itemRow').find('.artistName').text();
+          var track = $button.closest('.itemRow').find('.trackName').text();
+          self.dataLayer.addToPlaylist(idString, artist, track, function(){
             $button.replaceWith('<b><span class="text-success">Added</span></b>');
           });
         });
