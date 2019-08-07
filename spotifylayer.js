@@ -7,20 +7,12 @@ module.exports = function (access_token, request) {
     
     request: request,
 
-    getSearchOptions: function (searchString) {
-      return {
+    search: function(searchString, callback) {
+      request.get({
         url: 'https://api.spotify.com/v1/search?q=' + encodeURIComponent(searchString) + '&type=track',
         headers: this.headers,
         json: true
-      }
-    },
-
-    getAddToPlaylistOptions: function (idString) {
-      return {
-        url: 'https://api.spotify.com/v1/playlists/3KtyHb6OPldYjyU4yzngi1/tracks?uris=' + encodeURIComponent(idString),
-        headers: this.headers,
-        json: true
-      }
+      }, callback);
     },
 
     currentlyPlayingIsSecondToLastTrack: function (currentlyPlaying, playlist) {
@@ -32,8 +24,11 @@ module.exports = function (access_token, request) {
     },
 
     addTrackToPlaylist: function (idString, callback) {
-      var options = this.getAddToPlaylistOptions(idString);
-      request.post(options, callback);
+      request.post({
+        url: 'https://api.spotify.com/v1/playlists/3KtyHb6OPldYjyU4yzngi1/tracks?uris=' + encodeURIComponent(idString),
+        headers: this.headers,
+        json: true
+      }, callback);
     },
 
     addRandomTrackToPlaylist: function (callback) {
@@ -44,7 +39,7 @@ module.exports = function (access_token, request) {
       }
       request.get(options, function (error, response, body) {
         randomTrackData = body.tracks.items[0];
-        var idString = "spotify:track:" + body.tracks.items[0].id;
+        var idString = "spotify:track:" + randomTrackData.id;
         this.addTrackToPlaylist(idString, callback);
       }.bind(this));
     },
@@ -93,9 +88,9 @@ module.exports = function (access_token, request) {
     },
 
     getDataForTrackRemoval: function (toBeRemoved) {
-      return toBeRemoved.map(function (item) {
+      return toBeRemoved.map(function (trackId) {
         return {
-          uri: "spotify:track:" + item
+          uri: "spotify:track:" + trackId
         }
       });
     },

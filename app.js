@@ -16,10 +16,6 @@ var addTrackQuery = "INSERT INTO history (SpotifyId, [TrackTitle], [TrackArtist]
 console.log('Listening on 8888');
 http.listen(8888);
 
-io.on('connection', function(socket){
-  console.log('a user connected');
-});
-
 app.use(express.static(__dirname))
   .use(cors())
   .use(cookieParser());
@@ -51,6 +47,7 @@ app.get('/callback', function (req, res) {
   };
 
   request.post(authOptions, function (error, response, body) {
+    console.log(error);
     if (!error && response.statusCode === 200) {
       var access_token = body.access_token;
       var refresh_token = body.refresh_token;
@@ -75,8 +72,7 @@ app.get('/callback', function (req, res) {
           // TODO
         }
       }
-
-      var randomTrackData;
+      
       var playlistUrl = 'https://api.spotify.com/v1/playlists/3KtyHb6OPldYjyU4yzngi1';
       var updatePlaylistData = function (callback) {
         spotifyLayer.getCurrentlyPlaying(function (cpError, cpResponse, currentlyPlaying) {
@@ -92,9 +88,6 @@ app.get('/callback', function (req, res) {
               // Add a random track if we are on the second to last track in the playlist
               if (spotifyLayer.currentlyPlayingIsSecondToLastTrack(currentlyPlaying, playlistData)) {
                 spotifyLayer.addRandomTrackToPlaylist(function (error, response, body) {
-                  playlistData.items.push({
-                    track: randomTrackData
-                  });
                   if (callback) {
                     callback(currentlyPlaying, playlistData);
                   }
@@ -109,49 +102,54 @@ app.get('/callback', function (req, res) {
       }
 
       updatePlaylistData(function (currentlyPlaying, playlistData) {
+        var current = currentlyPlaying.item.id;
         init();
         res.redirect('/');
         setInterval(function () {
-          updatePlaylistData();
+          updatePlaylistData(function(cp, pd){
+            if (current !== cp.item.id) {
+              io.emit('update playlist', {currentlyPlaying: cp, playlistData: pd})
+              current = cp.item.id;
+            }
+          });
         }, 5000);
       });
 
       var init = function () {
-          sql.connect(sqlConfig).then(pool => {
-            app.get('/jukebox', function (req, jukeboxResponse) {
-              updatePlaylistData(function (currentlyPlaying, playlistData) {
-                jukeboxResponse.send({
-                  currentlyPlaying: currentlyPlaying,
-                  playlistData: playlistData
-                });
-              })
-            });
-
-            app.get('/search', function (req, res) {
-              var searchString = req.query.searchString;
-              var options = spotifyLayer.getSearchOptions(searchString);
-              request.get(options, function (error, response, body) {
-                res.send({
-                  response: body
-                });
+        sql.connect(sqlConfig).then(pool => {
+          app.get('/jukebox', function (req, jukeboxResponse) {
+            updatePlaylistData(function (currentlyPlaying, playlistData) {
+              jukeboxResponse.send({
+                currentlyPlaying: currentlyPlaying,
+                playlistData: playlistData
               });
-            });
+            })
+          });
 
-            app.get('/add', function (req, res) {
-              var idString = req.query.idString;
-              var artist = req.query.artist;
-              var track = req.query.title;
-              spotifyLayer.addTrackToPlaylist(idString, function (error, response, body) {
-                res.send({
-                  response: body
-                });
-                addTrackToHistory(pool, idString, track, artist);
-                updatePlaylistData(function (currentlyPlaying, playlistData) {
-                  io.emit('update playlist', {currentlyPlaying: currentlyPlaying, playlistData: playlistData});
-                });
+          app.get('/search', function (req, res) {
+            var searchString = req.query.searchString;
+            spotifyLayer.search(searchString, function (error, response, body) {
+              res.send({
+                response: body
               });
             });
           });
+
+          app.get('/add', function (req, res) {
+            var idString = req.query.idString;
+            var artist = req.query.artist;
+            var track = req.query.title;
+            spotifyLayer.addTrackToPlaylist(idString, function (error, response, body) {
+              res.send({
+                response: body
+              });
+              addTrackToHistory(pool, idString, track, artist);
+              updatePlaylistData(function (currentlyPlaying, playlistData) {
+                io.emit('update playlist', { currentlyPlaying: currentlyPlaying, playlistData: playlistData });
+              });
+            });
+          });
+        });
       }
 
     } else {

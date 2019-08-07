@@ -11,31 +11,7 @@
 <body>
   <div class="container">
     <div id="loggedin">
-      <div id="topSection">
-        <div class="row">
-          <div class="col-md-3 logoAndSearchSectionContainer">
-            <div class="logoAndSearchSection">
-              <h1 class="header">iGrafx Jukebox</h1>
-              <input id="search" class="input-sm" type="text">
-              <button id="searchButton" class="btn btn-primary">Search</button>
-            </div>
-          </div>
-          <div class="col-md-2 currentlyPlayingImageContainer">
-            <img id="currentlyPlayingImage">
-          </div>
-          <div class="col-md-6 currentlyPlayingContainer">
-            <h3 class="notCurrentlyPlaying" style="display: none;">The iGrafx Jukebox is Currently Not Playing</h3>
-            <h2 class="currentlyPlaying" style="display: none;">
-              <span id="currentlyPlayingSong"></span>
-            </h2>
-            <h3><span id="currentlyPlayingArtist" class="currentlyPlaying"></span></h3>
-            <h4 class="nextUp" style="display: none;">Next Up: "<span id="nextUpSong"></span>" by <span id="nextUpArtist"></span></h4>
-          </div>
-          <div class="col-md-1"><h4 id="time"></h4>
-            <button id="viewPlaylist" class="btn btn-default">View Playlist</button>
-          </div>
-        </div>
-      </div>
+      <div id="topSection"><div class="loading">LOADING</div></div>
       <div id="searchResultSection" class="container" style="display: none;"></div>
     </div>
   </div>

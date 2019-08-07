@@ -3,26 +3,26 @@ define(['jquery', 'mustache', 'datalayer', 'util'], function($, Mustache, DataLa
   var templates = {
     trackList: [
       '<div class="row itemRow">',
-        '<div class="col-md-1"></div>',
+        '<div class="col-md-2"></div>',
         '<div class="col-md-3">',
           '<b>Artist</b>',
         '</div>',
-        '<div class="col-md-7">',
+        '<div class="col-md-6">',
           '<b>Title</b>',
         '</div>',
         '<div class="col-md-1"></div>',
       '</div>',
       '{{#tracks}}',
         '<div class="row itemRow" data-track-id="{{trackId}}">',
-          '<div class="col-md-1">',
+          '<div class="col-md-2">',
             '{{#albumArtUrl}}',
-              '<img src="{{albumArtUrl}}">',
+              '<img class="playlistImage" src="{{albumArtUrl}}">',
             '{{/albumArtUrl}}',
           '</div>',
           '<div class="col-md-3">',
             '<p class="artistName">{{artistName}}</p>',
           '</div>',
-          '<div class="col-md-7">',
+          '<div class="col-md-6">',
             '<p class="trackName">{{trackName}}</p>',
           '</div>',
           '<div class="col-md-1">',
@@ -84,7 +84,7 @@ define(['jquery', 'mustache', 'datalayer', 'util'], function($, Mustache, DataLa
         if(item.track) {
           item = item.track;
         }
-        var thumbnail = item.album.images[2];
+        var thumbnail = item.album.images[1];
         return {
           trackId: item.id,
           albumArtUrl: !!thumbnail ? thumbnail.url : null,
