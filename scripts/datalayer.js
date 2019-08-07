@@ -32,6 +32,22 @@ define(['jquery', 'mustache'], function($, Mustache){
       }).done(function(response) {
         callback(response);
       });
+    },
+
+    play: function(callback) {
+      $.ajax({
+        url:'/play'
+      }).done(function(response){
+        callback(response);
+      });
+    },
+
+    pause: function(callback) {
+      $.ajax({
+        url:'/pause'
+      }).done(function(response){
+        callback(response);
+      });
     }
   }
 

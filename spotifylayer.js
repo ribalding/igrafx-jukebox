@@ -1,31 +1,35 @@
 
 module.exports = function (access_token, request) {
   return {
+    baseUrl: 'https://api.spotify.com/v1',
     headers: {
       'Authorization': 'Bearer ' + access_token
     },
-    
+
     request: request,
 
     search: function(searchString, callback) {
       request.get({
-        url: 'https://api.spotify.com/v1/search?q=' + encodeURIComponent(searchString) + '&type=track',
+        url: this.baseUrl + '/search?q=' + encodeURIComponent(searchString) + '&type=track',
         headers: this.headers,
         json: true
       }, callback);
     },
 
-    currentlyPlayingIsSecondToLastTrack: function (currentlyPlaying, playlist) {
+    /**
+    *   Return true if the currently playing track is only remaining song in the playlist
+    */
+    currentlyPlayingIsLastTrack: function (currentlyPlaying, playlist) {
       var tracks = playlist.items
-      if (tracks.length && tracks.length > 2) {
-        return currentlyPlaying.item.id === tracks[tracks.length - 2].track.id;
+      if (tracks.length && tracks.length > 1) {
+        return currentlyPlaying.item.id === tracks[tracks.length - 1].track.id;
       }
       return true;
     },
 
     addTrackToPlaylist: function (idString, callback) {
       request.post({
-        url: 'https://api.spotify.com/v1/playlists/3KtyHb6OPldYjyU4yzngi1/tracks?uris=' + encodeURIComponent(idString),
+        url: this.baseUrl + '/playlists/3KtyHb6OPldYjyU4yzngi1/tracks?uris=' + encodeURIComponent(idString),
         headers: this.headers,
         json: true
       }, callback);
@@ -46,7 +50,7 @@ module.exports = function (access_token, request) {
 
     getCurrentlyPlaying: function (callback) {
       var currentlyPlayingOptions = {
-        url: 'https://api.spotify.com/v1/me/player/currently-playing?market=us',
+        url: this.baseUrl + '/me/player/currently-playing?market=us',
         headers: this.headers,
         json: true
       };
@@ -60,7 +64,7 @@ module.exports = function (access_token, request) {
 
     getPlaylistData: function (callback) {
       var playlistOptions = {
-        url: 'https://api.spotify.com/v1/playlists/3KtyHb6OPldYjyU4yzngi1/tracks',
+        url: this.baseUrl + '/playlists/3KtyHb6OPldYjyU4yzngi1/tracks',
         headers: this.headers,
         json: true
       };
@@ -74,7 +78,7 @@ module.exports = function (access_token, request) {
 
     removePlayedTracks: function (toBeRemoved) {
       var options = {
-        url: 'https://api.spotify.com/v1/playlists/3KtyHb6OPldYjyU4yzngi1/tracks',
+        url: this.baseUrl + '/playlists/3KtyHb6OPldYjyU4yzngi1/tracks',
         headers: this.headers,
         json: true,
         body: {
@@ -84,6 +88,28 @@ module.exports = function (access_token, request) {
       }
       request.delete(options, function (error, response, body) {
         console.log(body)
+      });
+    },
+
+    pause: function() {
+      var options = {
+        url: this.baseUrl + '/me/player/pause',
+        headers: this.headers,
+        json: true
+      };
+      request.put(options, function(error, response, body){
+          console.log(body);
+      });
+    },
+
+    play: function(){
+      var options = {
+        url: this.baseUrl + '/me/player/play',
+        headers: this.headers,
+        json: true
+      };
+      request.put(options, function(error, response, body){
+          console.log(body);
       });
     },
 
@@ -112,7 +138,7 @@ module.exports = function (access_token, request) {
       var searchStringArray = ['%25a%25', 'a%25', '%25e%25', 'e%25', '%25i%25', 'i%25', '%25o%25', 'o%25'];
       var randomSearchString = searchStringArray[Math.floor(Math.random() * 8)];
       var randomOffset = Math.floor(Math.random() * 1000) + 1;
-      return "https://api.spotify.com/v1/search?query=" + randomSearchString + "&offset=" + randomOffset + "&limit=1&type=track&market=US";
+      return this.baseUrl + "/search?query=" + randomSearchString + "&offset=" + randomOffset + "&limit=1&type=track&market=US";
     }
   }
 };

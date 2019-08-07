@@ -21,7 +21,7 @@ app.use(express.static(__dirname))
   .use(cookieParser());
 
 app.get('/login', function (req, res) {
-  var scope = 'user-read-private user-read-email user-read-currently-playing user-library-read playlist-modify-public playlist-modify-private playlist-modify';
+  var scope = 'user-read-private user-read-email user-read-currently-playing user-library-read playlist-modify-public playlist-modify-private playlist-modify user-modify-playback-state';
   res.redirect('https://accounts.spotify.com/authorize?' +
     querystring.stringify({
       response_type: 'code',
@@ -72,44 +72,55 @@ app.get('/callback', function (req, res) {
           // TODO
         }
       }
-      
+
       var playlistUrl = 'https://api.spotify.com/v1/playlists/3KtyHb6OPldYjyU4yzngi1';
       var updatePlaylistData = function (callback) {
         spotifyLayer.getCurrentlyPlaying(function (cpError, cpResponse, currentlyPlaying) {
           spotifyLayer.getPlaylistData(function (plError, plResponse, playlistData) {
-            if (currentlyPlaying && playlistData && playlistData.items) {
-              var toBeRemoved = [];
-              if (currentlyPlaying && playlistData.items.length && currentlyPlaying.is_playing && currentlyPlaying.context.href === playlistUrl) {
-                var toBeRemoved = spotifyLayer.getTracksToBeRemoved(currentlyPlaying, playlistData);
-                if (toBeRemoved.length) {
-                  spotifyLayer.removePlayedTracks(toBeRemoved);
+            var curTrackIsInPlaylist = currentlyPlaying && currentlyPlaying.context && currentlyPlaying.context.href === playlistUrl;
+            var playState = 'stopped';
+              if (curTrackIsInPlaylist) {
+                playState = currentlyPlaying.is_playing ? 'playing' : 'paused';
+                maybeRemoveTracks(currentlyPlaying, playlistData);
+                // Add a random track if we are on the last track in the playlist
+                if (spotifyLayer.currentlyPlayingIsLastTrack(currentlyPlaying, playlistData)) {
+                  spotifyLayer.addRandomTrackToPlaylist(function(error, response, body) {
+                    if (callback) {
+                      callback(currentlyPlaying, playlistData, playState);
+                    }
+                  });
+                }
+                else if (callback) {
+                  callback(currentlyPlaying, playlistData, playState);
                 }
               }
-              // Add a random track if we are on the second to last track in the playlist
-              if (spotifyLayer.currentlyPlayingIsSecondToLastTrack(currentlyPlaying, playlistData)) {
-                spotifyLayer.addRandomTrackToPlaylist(function (error, response, body) {
-                  if (callback) {
-                    callback(currentlyPlaying, playlistData);
-                  }
-                });
-              }
               else if (callback) {
-                callback(currentlyPlaying, playlistData);
+                callback(currentlyPlaying, playlistData, playState)
               }
-            }
           });
         });
       }
 
-      updatePlaylistData(function (currentlyPlaying, playlistData) {
+      var maybeRemoveTracks = function(currentlyPlaying, playlistData) {
+        if (playlistData && playlistData.items && playlistData.items.length) {
+          var toBeRemoved = spotifyLayer.getTracksToBeRemoved(currentlyPlaying, playlistData);
+          if (toBeRemoved.length) {
+            spotifyLayer.removePlayedTracks(toBeRemoved);
+          }
+        }
+      }
+
+      updatePlaylistData(function (currentlyPlaying, playlistData, playState) {
         var current = currentlyPlaying.item.id;
+        var state = playState;
         init();
         res.redirect('/');
         setInterval(function () {
-          updatePlaylistData(function(cp, pd){
-            if (current !== cp.item.id) {
-              io.emit('update playlist', {currentlyPlaying: cp, playlistData: pd})
+          updatePlaylistData(function(cp, pd, ps){
+            if (current !== cp.item.id || ps !== state) {
+              io.emit('update playlist', {currentlyPlaying: cp, playlistData: pd, playState: ps})
               current = cp.item.id;
+              state = ps;
             }
           });
         }, 5000);
@@ -118,10 +129,11 @@ app.get('/callback', function (req, res) {
       var init = function () {
         sql.connect(sqlConfig).then(pool => {
           app.get('/jukebox', function (req, jukeboxResponse) {
-            updatePlaylistData(function (currentlyPlaying, playlistData) {
+            updatePlaylistData(function (currentlyPlaying, playlistData, playState) {
               jukeboxResponse.send({
                 currentlyPlaying: currentlyPlaying,
-                playlistData: playlistData
+                playlistData: playlistData,
+                playState: playState
               });
             })
           });
@@ -144,11 +156,25 @@ app.get('/callback', function (req, res) {
                 response: body
               });
               addTrackToHistory(pool, idString, track, artist);
-              updatePlaylistData(function (currentlyPlaying, playlistData) {
-                io.emit('update playlist', { currentlyPlaying: currentlyPlaying, playlistData: playlistData });
+              updatePlaylistData(function (currentlyPlaying, playlistData, playState) {
+                io.emit('update playlist', { currentlyPlaying: currentlyPlaying, playlistData: playlistData, playState: playState });
               });
             });
           });
+
+          app.get('/play', function(req, res){
+            spotifyLayer.play();
+            res.send({
+              response: body
+            });
+          });
+
+          app.get('/pause', function(req, res){
+            spotifyLayer.pause();
+            res.send({
+              response: body
+            });
+          })
         });
       }
 

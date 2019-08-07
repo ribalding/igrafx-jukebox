@@ -13,28 +13,37 @@ define(['jquery', 'mustache', 'datalayer', 'util'], function($, Mustache, DataLa
         '<div class="col-md-1"></div>',
       '</div>',
       '{{#tracks}}',
-        '<div class="row itemRow" data-track-id="{{trackId}}">',
-          '<div class="col-md-2">',
-            '{{#albumArtUrl}}',
-              '<img class="playlistImage" src="{{albumArtUrl}}">',
-            '{{/albumArtUrl}}',
-          '</div>',
-          '<div class="col-md-3">',
-            '<p class="artistName">{{artistName}}</p>',
-          '</div>',
-          '<div class="col-md-6">',
-            '<p class="trackName">{{trackName}}</p>',
-          '</div>',
-          '<div class="col-md-1">',
-            '{{#searchResults}}',
-              '<button class="btn btn-success addToPlaylist">+</button>',
-            '{{/searchResults}}',
-            '{{^searchResults}}',
-              '{{trackLength}}',
-            '{{/searchResults}}',
-          '</div>',
-        '</div>',
+        '{{>track}}',
       '{{/tracks}}'
+    ].join(''),
+
+    track: [
+      '<div class="row itemRow" data-track-id="{{trackId}}">',
+        '<div class="col-md-2">',
+          '{{#albumArtUrl}}',
+            '<img class="playlistImage" src="{{albumArtUrl}}">',
+          '{{/albumArtUrl}}',
+        '</div>',
+        '<div class="col-md-3">',
+          '<p class="artistName">{{artistName}}</p>',
+        '</div>',
+        '<div class="col-md-{{#searchResults}}5{{/searchResults}}{{^searchResults}}6{{/searchResults}}">',
+          '<p class="trackName">{{trackName}}</p>',
+        '</div>',
+        '{{#searchResults}}',
+          '<div class="col-md-1">',
+            '{{trackLength}}',
+          '</div>',
+        '{{/searchResults}}',
+        '<div class="col-md-1">',
+          '{{#searchResults}}',
+            '<button class="btn btn-success addToPlaylist">+</button>',
+          '{{/searchResults}}',
+          '{{^searchResults}}',
+            '{{trackLength}}',
+          '{{/searchResults}}',
+        '</div>',
+      '</div>',
     ].join('')
   };
 
@@ -49,7 +58,7 @@ define(['jquery', 'mustache', 'datalayer', 'util'], function($, Mustache, DataLa
       this.playlistIsVisible = true;
       var playlistHtml = Mustache.render(templates.trackList, {
         tracks: this.mapTrackListData(playlistData.items)
-      });
+      }, templates);
       this.$trackListSection.html(playlistHtml).show();
     },
 
@@ -62,7 +71,7 @@ define(['jquery', 'mustache', 'datalayer', 'util'], function($, Mustache, DataLa
         var searchResultsHtml = Mustache.render(templates.trackList, {
           tracks: this.mapTrackListData(items),
           searchResults: true
-        });
+        }, templates);
         this.$trackListSection.html(searchResultsHtml).show();
         this.playlistIsVisible = false;
         $('.addToPlaylist').on('click', function() {
