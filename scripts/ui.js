@@ -34,7 +34,6 @@ define([
           '{{^isStopped}}',
             '<div class="col-md-2 currentlyPlayingImageContainer">',
               '<img id="currentlyPlayingImage" src="{{currentlyPlayingImage}}">',
-              '<img class="playPauseIcon" src="../res/images/{{#isPaused}}play.png{{/isPaused}}{{#isPlaying}}pause.png{{/isPlaying}}">',
             '</div>',
             '<div class="col-md-5 currentlyPlayingContainer">',
               '<h2 class="currentlyPlaying">',
@@ -54,6 +53,7 @@ define([
           '<div class="col-md-1">',
             '{{^isStopped}}',
               '<h4 id="time"></h4>',
+              '<img class="playPauseIcon" src="../res/images/{{#isPaused}}play.png{{/isPaused}}{{#isPlaying}}pause.png{{/isPlaying}}">',
             '{{/isStopped}}',
             '<button id="viewPlaylist" class="btn btn-default">View Playlist</button>',
           '</div>',
@@ -62,7 +62,11 @@ define([
   }
 
   socket.on('update playlist', function(data){
-    updatePlayDisplay(data);
+    update(data.currentlyPlaying, data.playlistData, data.playState);
+  });
+
+  socket.on('update playstate', function(data){
+    update(currentlyPlaying, playlistData, data.playState);
   });
 
   var interval;
@@ -88,26 +92,19 @@ define([
     }
   }
 
-  function updatePlayDisplay(data) {
-    if(data) {
-      currentlyPlaying = data.currentlyPlaying;
-      playlistData = data.playlistData;
-      playState = data.playState;
-      updateTopSection(currentlyPlaying, playlistData, playState);
-      if(trackListSection.playlistIsVisible) {
-        trackListSection.displayPlaylist(playlistData);
-      }
-    }
-    else {
-      dataLayer.getJukeboxData(function(response) {
-        currentlyPlaying = response.currentlyPlaying;
-        playlistData = response.playlistData;
-        playState = response.playState;
-        updateTopSection(currentlyPlaying, playlistData, playState);
-        if(trackListSection.playlistIsVisible) {
-          trackListSection.displayPlaylist(playlistData);
-        }
-      });
+  function getPlaylistDataAndUpdate(data) {
+    dataLayer.getJukeboxData(function(response) {
+      update(response.currentlyPlaying, response.playlistData, response.playState);
+    });
+  }
+
+  function update(cp, pd, ps) {
+    currentlyPlaying = cp;
+    playlistData = pd;
+    playState = ps;
+    updateTopSection(currentlyPlaying, playlistData, playState);
+    if(trackListSection.playlistIsVisible) {
+      trackListSection.displayPlaylist(playlistData);
     }
   }
 
@@ -189,7 +186,7 @@ define([
   $(document).ready(function() {
     dataLayer = new DataLayer();
     trackListSection = new TrackListSection(dataLayer);
-    updatePlayDisplay();
+    getPlaylistDataAndUpdate();
   });
 
 });

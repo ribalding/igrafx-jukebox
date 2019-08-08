@@ -1,5 +1,5 @@
 
-module.exports = function (access_token, request) {
+module.exports = function (access_token, refresh_token, client_id, client_secret, request) {
   return {
     baseUrl: 'https://api.spotify.com/v1',
     headers: {
@@ -16,12 +16,36 @@ module.exports = function (access_token, request) {
       }, callback);
     },
 
+    getNewToken:  function(callback) {
+      var authOptions = {
+        url: 'https://accounts.spotify.com/api/token',
+        headers: {
+          'Authorization': 'Basic ' + (new Buffer(client_id + ':' + client_secret).toString('base64'))
+        },
+        form: {
+          grant_type: 'refresh_token',
+          refresh_token: refresh_token
+        },
+        json: true
+      };
+
+      request.post(authOptions, function(error, response, body) {
+        if (!error && response.statusCode === 200) {
+          access_token = body.access_token;
+          refresh_token = body.refresh_token;
+          if(callback) {
+            callback();
+          }
+        }
+      }.bind(this));
+    },
+
     /**
     *   Return true if the currently playing track is only remaining song in the playlist
     */
     currentlyPlayingIsLastTrack: function (currentlyPlaying, playlist) {
       var tracks = playlist.items
-      if (tracks.length && tracks.length > 1) {
+      if (tracks && tracks.length && tracks.length > 1) {
         return currentlyPlaying.item.id === tracks[tracks.length - 1].track.id;
       }
       return true;
@@ -32,7 +56,16 @@ module.exports = function (access_token, request) {
         url: this.baseUrl + '/playlists/3KtyHb6OPldYjyU4yzngi1/tracks?uris=' + encodeURIComponent(idString),
         headers: this.headers,
         json: true
-      }, callback);
+      }, function(error, response, body) {
+        if(!error) {
+          callback(error, response, body);
+        }
+        else {
+          this.getNewToken(function(){
+            this.addTrackToPlaylist(idString, callback);
+          }.bind(this));
+        }
+      }.bind(this));
     },
 
     addRandomTrackToPlaylist: function (callback) {
@@ -42,9 +75,16 @@ module.exports = function (access_token, request) {
         json: true
       }
       request.get(options, function (error, response, body) {
-        randomTrackData = body.tracks.items[0];
-        var idString = "spotify:track:" + randomTrackData.id;
-        this.addTrackToPlaylist(idString, callback);
+        if(!error) {
+          randomTrackData = body.tracks.items[0];
+          var idString = "spotify:track:" + randomTrackData.id;
+          this.addTrackToPlaylist(idString, callback);
+        }
+        else {
+          this.getNewToken(function(){
+            this.addRandomTrackToPlaylist(callback);
+          }.bind(this));
+        }
       }.bind(this));
     },
 
@@ -56,10 +96,17 @@ module.exports = function (access_token, request) {
       };
 
       request.get(currentlyPlayingOptions, function (error, response, body) {
-        if (callback) {
-          callback(error, response, body);
+        if(!error) {
+          if (callback) {
+            callback(error, response, body);
+          }
         }
-      });
+        else {
+          this.getNewToken(function(){
+            this.getCurrentlyPlaying(callback);
+          }.bind(this));
+        }
+      }.bind(this));
     },
 
     getPlaylistData: function (callback) {
@@ -70,10 +117,17 @@ module.exports = function (access_token, request) {
       };
 
       request.get(playlistOptions, function (error, response, body) {
-        if (callback) {
-          callback(error, response, body);
+        if(!error) {
+          if (callback) {
+            callback(error, response, body);
+          }
         }
-      });
+        else {
+          this.getNewToken(function(){
+            this.getPlaylistData(callback);
+          }.bind(this));
+        }
+      }.bind(this));
     },
 
     removePlayedTracks: function (toBeRemoved) {
@@ -87,8 +141,12 @@ module.exports = function (access_token, request) {
         contentType: 'application/json',
       }
       request.delete(options, function (error, response, body) {
-        console.log(body)
-      });
+        if(error) {
+          this.getNewToken(function(){
+            this.removePlayedTracks(toBeRemoved);
+          }.bind(this));
+        }
+      }.bind(this));
     },
 
     pause: function() {
@@ -98,8 +156,12 @@ module.exports = function (access_token, request) {
         json: true
       };
       request.put(options, function(error, response, body){
-          console.log(body);
-      });
+        if(error) {
+          this.getNewToken(function(){
+            this.pause();
+          }.bind(this));
+        }
+      }.bind(this));
     },
 
     play: function(){
@@ -109,7 +171,11 @@ module.exports = function (access_token, request) {
         json: true
       };
       request.put(options, function(error, response, body){
-          console.log(body);
+        if(error) {
+          this.getNewToken(function(){
+            this.pause();
+          }.bind(this));
+        }
       });
     },
 

@@ -46,14 +46,16 @@ app.get('/callback', function (req, res) {
     json: true
   };
 
-  request.post(authOptions, function (error, response, body) {
-    console.log(error);
+  request.post(authOptions, function(error, response, body){
     if (!error && response.statusCode === 200) {
+      afterAuthentication(error, response, body);
+    }
+  });
+
+  var afterAuthentication = function(error, response, body) {
       var access_token = body.access_token;
       var refresh_token = body.refresh_token;
-
-      var spotifyLayer = require('./spotifylayer')(access_token, request);
-
+      var spotifyLayer = require('./spotifylayer')(access_token, refresh_token, client_id, client_secret, request);
       var sqlConfig = {
         user: 'fred',
         password: 'bedrock',
@@ -101,6 +103,16 @@ app.get('/callback', function (req, res) {
         });
       }
 
+      var updateAndEmit = function() {
+        updatePlaylistData(function (currentlyPlaying, playlistData, playState) {
+          io.emit('update playlist', { currentlyPlaying: currentlyPlaying, playlistData: playlistData, playState: playState });
+        });
+      }
+
+      var emitPlayState = function(playState) {
+        io.emit('update playstate', { playState: playState})
+      }
+
       var maybeRemoveTracks = function(currentlyPlaying, playlistData) {
         if (playlistData && playlistData.items && playlistData.items.length) {
           var toBeRemoved = spotifyLayer.getTracksToBeRemoved(currentlyPlaying, playlistData);
@@ -111,15 +123,16 @@ app.get('/callback', function (req, res) {
       }
 
       updatePlaylistData(function (currentlyPlaying, playlistData, playState) {
-        var current = currentlyPlaying.item.id;
+        var current = currentlyPlaying ? currentlyPlaying.item.id : null;
         var state = playState;
         init();
         res.redirect('/');
         setInterval(function () {
           updatePlaylistData(function(cp, pd, ps){
-            if (current !== cp.item.id || ps !== state) {
+            var id = cp && cp.item ? cp.item.id : null;
+            if (current !== id || ps !== state) {
               io.emit('update playlist', {currentlyPlaying: cp, playlistData: pd, playState: ps})
-              current = cp.item.id;
+              current = id;
               state = ps;
             }
           });
@@ -156,14 +169,13 @@ app.get('/callback', function (req, res) {
                 response: body
               });
               addTrackToHistory(pool, idString, track, artist);
-              updatePlaylistData(function (currentlyPlaying, playlistData, playState) {
-                io.emit('update playlist', { currentlyPlaying: currentlyPlaying, playlistData: playlistData, playState: playState });
-              });
+              updateAndEmit();
             });
           });
 
           app.get('/play', function(req, res){
             spotifyLayer.play();
+            emitPlayState('playing');
             res.send({
               response: body
             });
@@ -171,44 +183,12 @@ app.get('/callback', function (req, res) {
 
           app.get('/pause', function(req, res){
             spotifyLayer.pause();
+            emitPlayState('paused');
             res.send({
               response: body
             });
           })
         });
       }
-
-    } else {
-      // res.redirect('/#' +
-      //   querystring.stringify({
-      //     error: 'invalid_token'
-      //   }));
-    }
-  });
+  }
 });
-
-// app.get('/refresh_token', function(req, res) {
-
-// requesting access token from refresh token
-//   var refresh_token = req.query.refresh_token;
-//   var authOptions = {
-//     url: 'https://accounts.spotify.com/api/token',
-//     headers: {
-//       'Authorization': 'Basic ' + (new Buffer(client_id + ':' + client_secret).toString('base64'))
-//     },
-//     form: {
-//       grant_type: 'refresh_token',
-//       refresh_token: refresh_token
-//     },
-//     json: true
-//   };
-//
-//   request.post(authOptions, function(error, response, body) {
-//     if (!error && response.statusCode === 200) {
-//       var access_token = body.access_token;
-//       res.send({
-//         'access_token': access_token
-//       });
-//     }
-//   });
-// });
