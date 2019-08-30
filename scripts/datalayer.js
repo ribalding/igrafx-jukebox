@@ -26,10 +26,21 @@ define(['jquery', 'mustache'], function($, Mustache){
         url: '/add',
         data: {
           idString: idString,
-          artist: artist,
-          title: title
+          artist: artist, //TODO - Are these doing anything?
+          title: title // ------------------
         }
       }).done(function(response) {
+        callback(response);
+      });
+    },
+
+    removeFromPlaylist: function(idString, callback) {
+      $.ajax({
+        url: '/remove',
+        data : {
+          idString: idString
+        }
+      }).done(function(response){
         callback(response);
       });
     },

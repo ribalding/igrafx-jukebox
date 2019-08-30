@@ -27,20 +27,20 @@ define(['jquery', 'mustache', 'datalayer', 'util'], function($, Mustache, DataLa
         '<div class="col-md-3">',
           '<p class="artistName">{{artistName}}</p>',
         '</div>',
-        '<div class="col-md-{{#searchResults}}5{{/searchResults}}{{^searchResults}}6{{/searchResults}}">',
+        '<div class="col-md-5">',
           '<p class="trackName">{{trackName}}</p>',
         '</div>',
-        '{{#searchResults}}',
           '<div class="col-md-1">',
             '{{trackLength}}',
           '</div>',
-        '{{/searchResults}}',
         '<div class="col-md-1">',
           '{{#searchResults}}',
             '<button class="btn btn-success addToPlaylist">+</button>',
           '{{/searchResults}}',
           '{{^searchResults}}',
-            '{{trackLength}}',
+            '{{#isRandom}}',
+              '<button class="btn btn-danger removeFromPlaylist" title="Automatically added tracks can be removed">X</button>',
+            '{{/isRandom}}',
           '{{/searchResults}}',
         '</div>',
       '</div>',
@@ -56,10 +56,20 @@ define(['jquery', 'mustache', 'datalayer', 'util'], function($, Mustache, DataLa
   TrackListSection.prototype = {
     displayPlaylist: function(playlistData) {
       this.playlistIsVisible = true;
+      var self = this;
       var playlistHtml = Mustache.render(templates.trackList, {
         tracks: this.mapTrackListData(playlistData.items)
       }, templates);
       this.$trackListSection.html(playlistHtml).show();
+      $('.removeFromPlaylist').off('click');
+      $('.removeFromPlaylist').on('click', function() {
+        var $button = $(this);
+        var $row = $button.closest('.itemRow');
+        var trackId = $row.attr('data-track-id');
+        self.dataLayer.removeFromPlaylist(trackId, function(response){
+          $button.replaceWith('<b><span class="text-danger">Removing...</span></b>');
+        });
+      });
     },
 
     displaySearchResults: function(response) {
@@ -78,18 +88,18 @@ define(['jquery', 'mustache', 'datalayer', 'util'], function($, Mustache, DataLa
           var $button = $(this);
           var $row = $button.closest('.itemRow');
           var trackId = $row.attr('data-track-id');
-          var idString = 'spotify:track:' + trackId;
-          var artist = $button.closest('.itemRow').find('.artistName').text();
-          var track = $button.closest('.itemRow').find('.trackName').text();
-          self.dataLayer.addToPlaylist(idString, artist, track, function(){
+          var artist = $row.find('.artistName').text();
+          var track = $row.find('.trackName').text();
+          self.dataLayer.addToPlaylist(trackId, artist, track, function(){
             $button.replaceWith('<b><span class="text-success">Added</span></b>');
           });
         });
       }
     },
 
+
     mapTrackListData: function(items) {
-      return items.map(function(item){
+      return items.map(function(item, index){
         if(item.track) {
           item = item.track;
         }
@@ -99,7 +109,8 @@ define(['jquery', 'mustache', 'datalayer', 'util'], function($, Mustache, DataLa
           albumArtUrl: !!thumbnail ? thumbnail.url : null,
           artistName: item.artists[0].name,
           trackName: item.name,
-          trackLength: Util.millisToMinutesAndSeconds(item.duration_ms)
+          trackLength: Util.millisToMinutesAndSeconds(item.duration_ms),
+          isRandom: item.isRandom && index !== 0
         }
       });
     }

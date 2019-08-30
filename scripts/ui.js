@@ -22,43 +22,41 @@ define([
   var trackListSection;
 
   var templates = {
-      topArea: [
-        '<div class="row">',
-          '<div class="col-md-3 logoAndSearchSectionContainer">',
-            '<div class="logoAndSearchSection">',
-              '<h1 class="header">iGrafx Jukebox</h1>',
-              '<input id="search" class="input-sm" type="text"> ',
-              '<button id="searchButton" class="btn btn-primary"><span class="glyphicon glyphicon-search"></span></button>',
-            '</div>',
-          '</div>',
-          '{{^isStopped}}',
-            '<div class="col-md-2 currentlyPlayingImageContainer">',
-              '<img id="currentlyPlayingImage" src="{{currentlyPlayingImage}}">',
-            '</div>',
-            '<div class="col-md-5 currentlyPlayingContainer">',
-              '<h2 class="currentlyPlaying">',
-                '<div id="currentlyPlayingSong">{{currentlyPlayingSong}}</div>',
-              '</h2>',
-              '<h3 id="currentlyPlayingArtist" class="currentlyPlaying">{{currentlyPlayingArtist}}</h3>',
-              '<h4 class="nextUp">Next Up: "<span id="nextUpSong"></span>" by <span id="nextUpArtist"></span></h4>',
-            '</div>',
-            '<div class="col-md-1">',
-            '</div>',
-          '{{/isStopped}}',
-          '{{#isStopped}}',
-            '<div class="col-md-8">',
-              '<h3 class="notCurrentlyPlaying">The iGrafx Jukebox is Currently Not Playing</h3>',
-            '</div>',
-          '{{/isStopped}}',
-          '<div class="col-md-1">',
-            '{{^isStopped}}',
-              '<h4 id="time"></h4>',
-              '<img class="playPauseIcon" src="../res/images/{{#isPaused}}play.png{{/isPaused}}{{#isPlaying}}pause.png{{/isPlaying}}">',
-            '{{/isStopped}}',
-            '<button id="viewPlaylist" class="btn btn-default">View Playlist</button>',
+    topArea: [
+      '<div class="row">',
+        '<div class="col-md-3 logoAndSearchSectionContainer">',
+          '<div class="logoAndSearchSection">',
+            '<h1 class="header">iGrafx Jukebox</h1>',
+            '<input id="search" class="input-sm" type="text"> ',
+            '<button id="searchButton" class="btn btn-primary"><span class="glyphicon glyphicon-search"></span></button>',
           '</div>',
         '</div>',
-      ].join('')
+        '{{^isStopped}}',
+          '<div class="col-md-2 currentlyPlayingImageContainer">',
+            '<img id="currentlyPlayingImage" src="{{currentlyPlayingImage}}">',
+          '</div>',
+          '<div class="col-md-6 currentlyPlayingContainer">',
+            '<h2 class="currentlyPlaying">',
+              '<div id="currentlyPlayingSong">{{currentlyPlayingSong}}</div>',
+            '</h2>',
+            '<h3 id="currentlyPlayingArtist" class="currentlyPlaying">{{currentlyPlayingArtist}}</h3>',
+            '<h4 class="nextUp">Next Up: "<span id="nextUpSong"></span>" by <span id="nextUpArtist"></span></h4>',
+          '</div>',
+        '{{/isStopped}}',
+        '{{#isStopped}}',
+          '<div class="col-md-8">',
+            '<h3 class="notCurrentlyPlaying">The iGrafx Jukebox is Currently Not Playing</h3>',
+          '</div>',
+        '{{/isStopped}}',
+        '<div class="col-md-1">',
+          '{{^isStopped}}',
+            '<h4 id="time"></h4>',
+            '<img class="playPauseIcon" src="../res/images/{{#isPaused}}play.png{{/isPaused}}{{#isPlaying}}pause.png{{/isPlaying}}">',
+          '{{/isStopped}}',
+          '<button id="viewPlaylist" class="btn btn-default">View Playlist</button>',
+        '</div>',
+      '</div>',
+    ].join('')
   }
 
   socket.on('update playlist', function(data){
@@ -128,14 +126,15 @@ define([
       }
     };
   }
-  function updateTopSection(currentlyPlaying, playlistData, playState) {
+  function updateTopSection(currentlyPlaying, playlistData, playState, initialRender) {
     var topSection = Mustache.render(templates.topArea, {
       isPlaying: playState === 'playing',
       isPaused: playState === 'paused',
       isStopped: playState === 'stopped',
       currentlyPlayingImage: currentlyPlaying.item.album.images[1].url,
       currentlyPlayingSong: currentlyPlaying.item.name,
-      currentlyPlayingArtist: currentlyPlaying.item.artists[0].name
+      currentlyPlayingArtist: currentlyPlaying.item.artists[0].name,
+      initialRender: initialRender
     });
 
     $('#topSection').html(topSection);
@@ -158,7 +157,7 @@ define([
     });
 
     $('#viewPlaylist').on('click', function(){
-      if(playlistData.items && playlistData.items.length && !trackListSection.playlistIsVisible) {
+      if(playlistData.items && playlistData.items.length) {
         trackListSection.displayPlaylist(playlistData);
       }
     });
