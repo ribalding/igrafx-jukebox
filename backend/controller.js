@@ -36,10 +36,15 @@ module.exports = function (app, spotifyManager, io, emitter) {
 
     this.app.get('/remove', function(req, res){
       var idString = req.query.idString;
-      this.spotifyManager.removeTracks([{uri: 'spotify:track:' + idString}], function(error, response, body){
-        res.send({ response: body });
-        this.updateAndEmit();
-      }.bind(this));
+      if(this.spotifyManager.randomTrackIds[idString]){
+        this.spotifyManager.removeTracks([{uri: 'spotify:track:' + idString}], function(error, response, body){
+          res.send({ response: body });
+          this.updateAndEmit();
+        }.bind(this));
+      }
+      else {
+        res.send();
+      }
     }.bind(this));
 
     this.app.get('/play', function(req, res){
