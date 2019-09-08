@@ -90,7 +90,7 @@ define([
     }
   }
 
-  function getPlaylistDataAndUpdate(data) {
+  function getPlaylistDataAndUpdate() {
     dataLayer.getJukeboxData(function(response) {
       update(response.currentlyPlaying, response.playlistData, response.playState);
     });
@@ -102,7 +102,7 @@ define([
     playState = ps;
     updateTopSection(currentlyPlaying, playlistData, playState);
     if(trackListSection.playlistIsVisible) {
-      trackListSection.displayPlaylist(playlistData);
+      trackListSection.displayPlaylist(playlistData, currentlyPlaying.item.id);
     }
   }
 
@@ -157,9 +157,8 @@ define([
     });
 
     $('#viewPlaylist').on('click', function(){
-      if(playlistData.items && playlistData.items.length) {
-        trackListSection.displayPlaylist(playlistData);
-      }
+      trackListSection.playlistIsVisible = true;
+      getPlaylistDataAndUpdate();
     });
 
     $('#search').on('keydown', function(e){

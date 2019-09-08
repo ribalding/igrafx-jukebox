@@ -54,7 +54,10 @@ define(['jquery', 'mustache', 'datalayer', 'util'], function($, Mustache, DataLa
   }
 
   TrackListSection.prototype = {
-    displayPlaylist: function(playlistData) {
+    displayPlaylist: function(playlistData, currentlyPlayingId) {
+      if(currentlyPlayingId !== playlistData.items[0].track.id) {
+        playlistData.items.shift(); // Extra catch in case the first song is an already removed track
+      }
       this.playlistIsVisible = true;
       var self = this;
       var playlistHtml = Mustache.render(templates.trackList, {

@@ -4,61 +4,47 @@ define(['jquery', 'mustache'], function($, Mustache){
   }
 
   DataLayer.prototype = {
-    getJukeboxData: function(callback) {
-      $.get('/jukebox', function(response) {
-        callback(response);
-      });
+    getJukeboxData: async function(callback) {
+      let response = await $.get('/jukebox');
+      callback(response);
     },
 
-    search: function(searchString, callback) {
-      $.ajax({
+    search: async function(searchString, callback) {
+      let response = await $.ajax({
         url: '/search',
-        data: {
-          searchString: searchString
-        }
-      }).done(function(response) {
-        callback(response);
+        data: {  searchString: searchString }
       });
+      callback(response);
     },
 
-    addToPlaylist: function(idString, artist, title, callback) {
-      $.ajax({
+    addToPlaylist: async function(idString, artist, title, callback) {
+      let response = await $.ajax({
         url: '/add',
         data: {
           idString: idString,
-          artist: artist, //TODO - Are these doing anything?
-          title: title // ------------------
+          artist: artist, 
+          title: title 
         }
-      }).done(function(response) {
-        callback(response);
       });
+      callback(response);
     },
 
-    removeFromPlaylist: function(idString, callback) {
-      $.ajax({
+    removeFromPlaylist: async function(idString, callback) {
+      let response = await $.ajax({
         url: '/remove',
-        data : {
-          idString: idString
-        }
-      }).done(function(response){
-        callback(response);
+        data : { idString: idString }
       });
+      callback(response);
     },
 
-    play: function(callback) {
-      $.ajax({
-        url:'/play'
-      }).done(function(response){
-        callback(response);
-      });
+    play: async function(callback) {
+      let response = await $.ajax({ url:'/play' });
+      callback(response);
     },
 
-    pause: function(callback) {
-      $.ajax({
-        url:'/pause'
-      }).done(function(response){
-        callback(response);
-      });
+    pause: async function(callback) {
+      let response = await $.ajax({ url:'/pause' });
+      callback(response);
     }
   }
 

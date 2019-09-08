@@ -1,7 +1,8 @@
-module.exports = function (spotifyLayer, emitter) {
+module.exports = function (spotifyLayer, emitter, playlist_id) {
   this.spotifyLayer = spotifyLayer;
   this.emitter = emitter;
-  this.playlistUrl = 'https://api.spotify.com/v1/playlists/3KtyHb6OPldYjyU4yzngi1';
+  this.playlist_id = playlist_id;
+  this.playlistUrl = 'https://api.spotify.com/v1/playlists/' + playlist_id;
   this.baseUrl = 'https://api.spotify.com/v1';
   this.randomTrackIds = {};
   this.updateInterval = 5000;
@@ -81,9 +82,7 @@ module.exports = function (spotifyLayer, emitter) {
 
   this.mapDataForTrackRemoval = function (toBeRemoved) {
     return toBeRemoved.map(function (trackId) {
-      return {
-        uri: "spotify:track:" + trackId
-      }
+      return { uri: "spotify:track:" + trackId }
     });
   };
 
@@ -101,8 +100,9 @@ module.exports = function (spotifyLayer, emitter) {
   }
 
   this.addRandomTrackToPlaylist = function (callback) {
+    var url = this.getUrlForRandomSong();
     this.search({ 
-      url: this.getUrlForRandomSong() 
+      url: url 
     }, function (error, response, body) {
       var randomTrackData = body.tracks.items[0];
       var id = randomTrackData.id;

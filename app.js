@@ -6,9 +6,11 @@ var querystring = require('querystring');
 var cookieParser = require('cookie-parser');
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
-var client_id = 'ca7a77180878452a93bde76fa726333b'; // Your client id
-var client_secret = 'a0435d5c26ac4b2e9fcd6e4c49a06136'; // Your secret
-var redirect_uri = 'http://localhost:8888/callback'; // Your redirect uri
+var config = require('./config.json');
+var client_id = config.client_id; 
+var client_secret = config.client_secret; 
+var playlist_id = config.playlist_id;
+var redirect_uri = 'http://localhost:8888/callback'; 
 var sql = require('mssql');
 var SpotifyLayer = require('./backend/spotifylayer');
 var Controller = require('./backend/controller');
@@ -60,7 +62,7 @@ app.get('/callback', function (req, res) {
     var refresh_token = body.refresh_token;
     var spotifyLayer = new SpotifyLayer(access_token, refresh_token, client_id, client_secret, request);
     var emitter = new EventEmitter();
-    var spotifyManager = new SpotifyManager(spotifyLayer, emitter);
+    var spotifyManager = new SpotifyManager(spotifyLayer, emitter, playlist_id);
     spotifyManager.init();
     var controller = new Controller(app, spotifyManager, io, emitter);
     controller.init();

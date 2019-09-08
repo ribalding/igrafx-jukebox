@@ -97,7 +97,7 @@ module.exports = function (access_token, refresh_token, client_id, client_secret
   };
 
   this.removeTracks = function(toBeRemoved, callback) {
-    console.log(toBeRemoved);
+    console.log('Removing - ' + toBeRemoved);
     var options = {
       url: this.baseUrl + '/playlists/' + this.playlistId + '/tracks',
       headers: this.headers,
