@@ -19,13 +19,13 @@ If you want to enable database functionality:
 
 1. Create an MSSQL database with one table called "history" which will contain the following columns: 
 
-ID (int, primary key, non null)
-TrackTitle (nvarchar(255))
-TrackArtist (nvarchar(255))
-DateAdded (datetime)
-UserSelected (tinyint)
-AddedBy (nvarchar(255))
-SpotifyId (nvarchar(255))
+- ID (int, primary key, non null)
+- TrackTitle (nvarchar(255))
+- TrackArtist (nvarchar(255))
+- DateAdded (datetime)
+- UserSelected (tinyint)
+- AddedBy (nvarchar(255))
+- SpotifyId (nvarchar(255))
 
 2. In your config.json file, add 2 more properties called "db_enabled" and "db_config".  The former will contain a boolean which should be set to True if you want db functionaliy enabled.  The latter will be a json object with the following properties: user, password, server and database.  Fill in the appropriate corresponding information regarding your newly created database.
 
