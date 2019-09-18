@@ -1,9 +1,9 @@
-module.exports = function (spotifyLayer, emitter, playlist_id) {
-  this.spotifyLayer = spotifyLayer;
+module.exports = function (spotifyAccessor, emitter, playlist_id) {
+  this.spotifyAccessor = spotifyAccessor;
   this.emitter = emitter;
   this.playlist_id = playlist_id;
-  this.playlistUrl = 'https://api.spotify.com/v1/playlists/' + playlist_id;
   this.baseUrl = 'https://api.spotify.com/v1';
+  this.playlistUrl = this.baseUrl + '/playlists/' + playlist_id;
   this.randomTrackIds = {};
   this.updateInterval = 5000;
   this.init = function() {
@@ -31,8 +31,8 @@ module.exports = function (spotifyLayer, emitter, playlist_id) {
       if (curTrackIsInPlaylist) {
         playState = currentlyPlaying.is_playing ? 'playing' : 'paused';
         this.maybeRemoveTracks(currentlyPlaying, playlistData);
-        // Add a random track if we are on the last track in the playlist
-        if (this.currentlyPlayingIsLastTrack(currentlyPlaying, playlistData)) {
+        // Add a random track if we are on the second to last track in the playlist
+        if (this.currentlyPlayingIsSecondToLastTrack(currentlyPlaying, playlistData)) {
           this.addRandomTrackToPlaylist(function (error, response, body) {
             this.getUpdatedData(function (cpError, cpResponse, currentlyPlaying, plError, plResponse, playlistData) {
               if (callback) {
@@ -42,7 +42,7 @@ module.exports = function (spotifyLayer, emitter, playlist_id) {
           }.bind(this));
         }
         else if (callback) {
-          this.identifyRandomTracks(playlistData, spotifyLayer);
+          playlistData.items = this.mapRandomTracks(playlistData);
           callback(currentlyPlaying, playlistData, playState);
         }
       }
@@ -53,29 +53,35 @@ module.exports = function (spotifyLayer, emitter, playlist_id) {
   }
 
   this.getUpdatedData = function (callback) {
-    this.spotifyLayer.getCurrentlyPlaying(function (cpError, cpResponse, currentlyPlaying) {
-      this.spotifyLayer.getPlaylistData(function (plError, plResponse, playlistData) {
+    this.spotifyAccessor.getCurrentlyPlaying(function (cpError, cpResponse, currentlyPlaying) {
+      this.spotifyAccessor.getPlaylistData(function (plError, plResponse, playlistData) {
         if (callback) {
-          this.identifyRandomTracks(playlistData, spotifyLayer);
+          playlistData.items = this.mapRandomTracks(playlistData);
           callback(cpError, cpResponse, currentlyPlaying, plError, plResponse, playlistData);
         }
       }.bind(this));
     }.bind(this));
   };
 
-  this.identifyRandomTracks = function (playlistData) {
-    if (playlistData.items && playlistData.items.length) {
-      for (var i = 0; i < playlistData.items.length; i++) {
-        playlistData.items[i].track.isRandom = this.randomTrackIds[playlistData.items[i].track.id];
-      }
-    }
+  /**
+   *   Identify tracks that have been added randomly and mark them as such
+   */
+  this.mapRandomTracks = function (playlistData) {
+    var items = playlistData.items;
+    return items.map(function(item){
+      item.track.isRandom = this.randomTrackIds[item.track.id];
+      return item;
+    }.bind(this));
   }
 
+  /**
+   *   Remove any remaining outdated tracks from the playlist
+   */
   this.maybeRemoveTracks = function (currentlyPlaying, playlistData) {
     if (playlistData && playlistData.items && playlistData.items.length) {
       var toBeRemoved = this.getTracksToBeRemoved(currentlyPlaying, playlistData);
       if (toBeRemoved.length) {
-        this.spotifyLayer.removeTracks(this.mapDataForTrackRemoval(toBeRemoved));
+        this.spotifyAccessor.removeTracks(this.mapDataForTrackRemoval(toBeRemoved));
       }
     }
   }
@@ -86,6 +92,7 @@ module.exports = function (spotifyLayer, emitter, playlist_id) {
     });
   };
 
+  // TODO - Do this better
   this.getTracksToBeRemoved = function (currentlyPlaying, playlistData) {
     var toBeRemoved = [];
     for (var i = 0; i < playlistData.items.length; i++) {
@@ -112,23 +119,23 @@ module.exports = function (spotifyLayer, emitter, playlist_id) {
   };
 
   this.addTrackToPlaylist = function(id, callback) {
-    this.spotifyLayer.addTrackToPlaylist(id, callback);
+    this.spotifyAccessor.addTrackToPlaylist(id, callback);
   }
 
   this.search = function(config, callback) {
-    this.spotifyLayer.search(config, callback);
+    this.spotifyAccessor.search(config, callback);
   }
 
   this.removeTracks = function (toBeRemoved, callback) {
-    this.spotifyLayer.removeTracks(toBeRemoved, callback);
+    this.spotifyAccessor.removeTracks(toBeRemoved, callback);
   }
 
   this.play = function() {
-    this.spotifyLayer.play();
+    this.spotifyAccessor.play();
   }
 
   this.pause = function() {
-    this.spotifyLayer.pause();
+    this.spotifyAccessor.pause();
   }
   
   /**
@@ -142,9 +149,9 @@ module.exports = function (spotifyLayer, emitter, playlist_id) {
   }
 
   /**
-   *   Return true if the currently playing track is only remaining song in the playlist
+   *   Return true if the currently playing track is second to last in the playlist
    */
-  this.currentlyPlayingIsLastTrack = function (currentlyPlaying, playlist) {
+  this.currentlyPlayingIsSecondToLastTrack = function (currentlyPlaying, playlist) {
     var tracks = playlist.items
     if (tracks && tracks.length && tracks.length > 2) {
       return currentlyPlaying.item.id === tracks[tracks.length - 2].track.id;

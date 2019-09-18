@@ -1,9 +1,9 @@
-module.exports = function (app, spotifyManager, io, emitter) {
+module.exports = function (app, spotifyManager, io, emitter, databaseLayer) {
   this.app = app;
   this.spotifyManager = spotifyManager;
   this.io = io;
   this.emitter = emitter;
-  this.playlistUrl = 'https://api.spotify.com/v1/playlists/3KtyHb6OPldYjyU4yzngi1';
+  this.databaseLayer = databaseLayer;
 
   this.init = function() {
     this.app.get('/jukebox', function (req, jukeboxResponse) {
@@ -29,7 +29,7 @@ module.exports = function (app, spotifyManager, io, emitter) {
       var track = req.query.title;
       this.spotifyManager.addTrackToPlaylist(idString, function (error, response, body) {
         res.send({ response: body });
-        // addTrackToHistory(pool, idString, track, artist);
+        this.databaseLayer.addTrackToHistory(idString, track, artist);
         this.updateAndEmit();
       }.bind(this));
     }.bind(this));

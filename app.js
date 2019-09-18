@@ -10,11 +10,12 @@ var config = require('./config.json');
 var client_id = config.client_id; 
 var client_secret = config.client_secret; 
 var playlist_id = config.playlist_id;
+var db_enabled = config.db_enabled || false;
 var redirect_uri = 'http://localhost:8888/callback'; 
 var sql = require('mssql');
-var SpotifyLayer = require('./backend/spotifylayer');
+var SpotifyAccessor = require('./backend/spotifyaccessor');
 var Controller = require('./backend/controller');
-var SpotifyManager = require('./backend/spotifymanager');
+var JukeboxManager = require('./backend/jukeboxmanager');
 var DatabaseLayer = require('./backend/databaselayer');
 var EventEmitter = require('events');
 
@@ -53,18 +54,26 @@ app.get('/callback', function (req, res) {
 
   request.post(authOptions, function(error, response, body){
     if (!error && response.statusCode === 200) {
-      afterAuthentication(error, response, body);
+      if(db_enabled) {
+        sql.connect(config.db_config).then(pool => {
+          var databaseLayer = new DatabaseLayer(sql, pool);
+          afterAuthentication(error, response, body, databaseLayer);
+        });
+      }
+      else {
+        afterAuthentication(error, response, body);
+      }
     }
   });
 
-  var afterAuthentication = function(error, response, body) {
+  var afterAuthentication = function(error, response, body, databaseLayer) {
     var access_token = body.access_token;
     var refresh_token = body.refresh_token;
-    var spotifyLayer = new SpotifyLayer(access_token, refresh_token, client_id, client_secret, request);
+    var spotifyAccessor = new SpotifyAccessor(access_token, refresh_token, client_id, client_secret, request, playlist_id);
     var emitter = new EventEmitter();
-    var spotifyManager = new SpotifyManager(spotifyLayer, emitter, playlist_id);
-    spotifyManager.init();
-    var controller = new Controller(app, spotifyManager, io, emitter);
+    var jukeboxManager = new JukeboxManager(spotifyAccessor, emitter, playlist_id);
+    jukeboxManager.init();
+    var controller = new Controller(app, jukeboxManager, io, emitter, databaseLayer);
     controller.init();
     res.redirect('/');
     

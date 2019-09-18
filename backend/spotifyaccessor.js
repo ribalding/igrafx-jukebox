@@ -1,11 +1,11 @@
-module.exports = function (access_token, refresh_token, client_id, client_secret, request) {
+module.exports = function (access_token, refresh_token, client_id, client_secret, request, playlistId) {
   this.access_token = access_token;
-  this.playlistId = '3KtyHb6OPldYjyU4yzngi1';
+  this.playlistId = playlistId;
   this.baseUrl = 'https://api.spotify.com/v1';
-  this.headers = {
-    'Authorization': 'Bearer ' + access_token
-  };
+  this.headers = { 'Authorization': 'Bearer ' + access_token };
   this.request = request;
+  this.client_id = client_id;
+  this.client_secret = client_secret;
 
   this.search = function(config, callback) {
     request.get({
@@ -19,7 +19,7 @@ module.exports = function (access_token, refresh_token, client_id, client_secret
     var authOptions = {
       url: 'https://accounts.spotify.com/api/token',
       headers: {
-        'Authorization': 'Basic ' + (new Buffer(client_id + ':' + client_secret).toString('base64'))
+        'Authorization': 'Basic ' + (new Buffer(this.client_id + ':' + this.client_secret).toString('base64'))
       },
       form: {
         grant_type: 'refresh_token',
@@ -39,21 +39,16 @@ module.exports = function (access_token, refresh_token, client_id, client_secret
     }.bind(this));
   };
 
-  this.addTrackToPlaylist = function(id, callback) {
+  this.addTrackToPlaylist = async function(id, callback) {
     var idString = 'spotify:track:' + id;
-    request.post({
+    var response = await request.post({
       url: this.baseUrl + '/playlists/' + this.playlistId + '/tracks?uris=' + encodeURIComponent(idString),
       headers: this.headers,
       json: true
-    }, function(error, response, body) {
-      if (!error) {
-        callback(error, response, body);
-      } else {
-        this.getNewToken(function() {
-          this.addTrackToPlaylist(idString, callback);
-        }.bind(this));
-      }
-    }.bind(this));
+    });
+    var error = null;
+    var body = null;
+    callback(error, response, body);
   };
 
   this.getCurrentlyPlaying = function(callback) {
@@ -97,7 +92,6 @@ module.exports = function (access_token, refresh_token, client_id, client_secret
   };
 
   this.removeTracks = function(toBeRemoved, callback) {
-    console.log('Removing - ' + toBeRemoved);
     var options = {
       url: this.baseUrl + '/playlists/' + this.playlistId + '/tracks',
       headers: this.headers,
@@ -126,13 +120,7 @@ module.exports = function (access_token, refresh_token, client_id, client_secret
       headers: this.headers,
       json: true
     };
-    request.put(options, function(error, response, body) {
-      if (error) {
-        this.getNewToken(function() {
-          this.pause();
-        }.bind(this));
-      }
-    }.bind(this));
+    request.put(options);
   };
 
   this.play = function() {
@@ -141,12 +129,6 @@ module.exports = function (access_token, refresh_token, client_id, client_secret
       headers: this.headers,
       json: true
     };
-    request.put(options, function(error, response, body) {
-      if (error) {
-        this.getNewToken(function() {
-          this.pause();
-        }.bind(this));
-      }
-    });
+    request.put(options);
   };
 };
