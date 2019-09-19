@@ -1,3 +1,5 @@
+// JukeboxManager Module //
+
 module.exports = function (spotifyAccessor, emitter, playlist_id) {
   this.spotifyAccessor = spotifyAccessor;
   this.emitter = emitter;
@@ -24,7 +26,7 @@ module.exports = function (spotifyAccessor, emitter, playlist_id) {
   };
 
   this.updatePlaylistData = function (callback) {
-    this.getUpdatedData(function (cpError, cpResponse, currentlyPlaying, plError, plResponse, playlistData) {
+    this.getUpdatedData(function (currentlyPlaying, playlistData) {
       var curTrackIsInPlaylist = currentlyPlaying && currentlyPlaying.context && currentlyPlaying.context.href === this.playlistUrl;
       var playState = 'stopped';
 
@@ -33,8 +35,8 @@ module.exports = function (spotifyAccessor, emitter, playlist_id) {
         this.maybeRemoveTracks(currentlyPlaying, playlistData);
         // Add a random track if we are on the second to last track in the playlist
         if (this.currentlyPlayingIsSecondToLastTrack(currentlyPlaying, playlistData)) {
-          this.addRandomTrackToPlaylist(function (error, response, body) {
-            this.getUpdatedData(function (cpError, cpResponse, currentlyPlaying, plError, plResponse, playlistData) {
+          this.addRandomTrackToPlaylist(function (body) {
+            this.getUpdatedData(function (currentlyPlaying, playlistData) {
               if (callback) {
                 callback(currentlyPlaying, playlistData, playState);
               }
@@ -53,11 +55,11 @@ module.exports = function (spotifyAccessor, emitter, playlist_id) {
   }
 
   this.getUpdatedData = function (callback) {
-    this.spotifyAccessor.getCurrentlyPlaying(function (cpError, cpResponse, currentlyPlaying) {
-      this.spotifyAccessor.getPlaylistData(function (plError, plResponse, playlistData) {
+    this.spotifyAccessor.getCurrentlyPlaying(function (currentlyPlaying) {
+      this.spotifyAccessor.getPlaylistData(function (playlistData) {
         if (callback) {
           playlistData.items = this.mapRandomTracks(playlistData);
-          callback(cpError, cpResponse, currentlyPlaying, plError, plResponse, playlistData);
+          callback(currentlyPlaying, playlistData);
         }
       }.bind(this));
     }.bind(this));
@@ -108,9 +110,7 @@ module.exports = function (spotifyAccessor, emitter, playlist_id) {
 
   this.addRandomTrackToPlaylist = function (callback) {
     var url = this.getUrlForRandomSong();
-    this.search({ 
-      url: url 
-    }, function (error, response, body) {
+    this.search({ url: url }, function (body) {
       var randomTrackData = body.tracks.items[0];
       var id = randomTrackData.id;
       this.randomTrackIds[id] = true;
@@ -136,6 +136,10 @@ module.exports = function (spotifyAccessor, emitter, playlist_id) {
 
   this.pause = function() {
     this.spotifyAccessor.pause();
+  }
+
+  this.refresh = function(callback) {
+    this.spotifyAccessor.getNewToken(callback);
   }
   
   /**

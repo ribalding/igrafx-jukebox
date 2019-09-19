@@ -1,13 +1,13 @@
-module.exports = function (app, spotifyManager, io, emitter, databaseLayer) {
+module.exports = function (app, jukeboxManager, io, emitter, databaseLayer) {
   this.app = app;
-  this.spotifyManager = spotifyManager;
+  this.jukeboxManager = jukeboxManager;
   this.io = io;
   this.emitter = emitter;
   this.databaseLayer = databaseLayer;
 
   this.init = function() {
     this.app.get('/jukebox', function (req, jukeboxResponse) {
-      this.spotifyManager.updatePlaylistData(function (currentlyPlaying, playlistData, playState) {
+      this.jukeboxManager.updatePlaylistData(function (currentlyPlaying, playlistData, playState) {
         jukeboxResponse.send({
           currentlyPlaying: currentlyPlaying,
           playlistData: playlistData,
@@ -18,7 +18,7 @@ module.exports = function (app, spotifyManager, io, emitter, databaseLayer) {
 
     this.app.get('/search', function (req, res) {
       var searchString = req.query.searchString;
-      this.spotifyManager.search({searchString: searchString}, function (error, response, body) {
+      this.jukeboxManager.search({searchString: searchString}, function (body) {
         res.send({ response: body });
       }.bind(this));
     }.bind(this));
@@ -27,7 +27,7 @@ module.exports = function (app, spotifyManager, io, emitter, databaseLayer) {
       var idString = req.query.idString;
       var artist = req.query.artist;
       var track = req.query.title;
-      this.spotifyManager.addTrackToPlaylist(idString, function (error, response, body) {
+      this.jukeboxManager.addTrackToPlaylist(idString, function (body) {
         res.send({ response: body });
         this.databaseLayer.addTrackToHistory(idString, track, artist);
         this.updateAndEmit();
@@ -36,8 +36,8 @@ module.exports = function (app, spotifyManager, io, emitter, databaseLayer) {
 
     this.app.get('/remove', function(req, res){
       var idString = req.query.idString;
-      if(this.spotifyManager.randomTrackIds[idString]){
-        this.spotifyManager.removeTracks([{uri: 'spotify:track:' + idString}], function(error, response, body){
+      if(this.jukeboxManager.randomTrackIds[idString]){
+        this.jukeboxManager.removeTracks([{uri: 'spotify:track:' + idString}], function(body){
           res.send({ response: body });
           this.updateAndEmit();
         }.bind(this));
@@ -48,21 +48,20 @@ module.exports = function (app, spotifyManager, io, emitter, databaseLayer) {
     }.bind(this));
 
     this.app.get('/play', function(req, res){
-      this.spotifyManager.play();
+      this.jukeboxManager.play();
       this.emitPlayState('playing');
       res.send();
     }.bind(this));
 
     this.app.get('/pause', function(req, res){
-      this.spotifyManager.pause();
+      this.jukeboxManager.pause();
       this.emitPlayState('paused');
       res.send();
     }.bind(this));
 
     this.app.get('/refresh', function(req, res){
-      console.log('before - ' + spotifyManager.access_token);
-      this.spotifyManager.getNewToken(function() {
-        console.log('after - ' + spotifyManager.access_token);
+      this.jukeboxManager.refresh(function(newToken) {
+        console.log('after - ' + newToken);
       });
       res.send({});
     }.bind(this));
@@ -72,8 +71,8 @@ module.exports = function (app, spotifyManager, io, emitter, databaseLayer) {
     this.io.emit('update playlist', data);
   }.bind(this))
 
-  this.updateAndEmit = function(currentlyPlaying, playlistData, playState) {
-    this.spotifyManager.updatePlaylistData(function (currentlyPlaying, playlistData, playState) {
+  this.updateAndEmit = function() {
+    this.jukeboxManager.updatePlaylistData(function (currentlyPlaying, playlistData, playState) {
       this.io.emit('update playlist', { currentlyPlaying: currentlyPlaying, playlistData: playlistData, playState: playState });
     }.bind(this));
   }

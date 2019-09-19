@@ -1,5 +1,8 @@
+// Spotify Accessor Module //
+
 module.exports = function (access_token, refresh_token, client_id, client_secret, request, playlistId) {
   this.access_token = access_token;
+  this.refresh_token = refresh_token;
   this.playlistId = playlistId;
   this.baseUrl = 'https://api.spotify.com/v1';
   this.headers = { 'Authorization': 'Bearer ' + access_token };
@@ -7,15 +10,20 @@ module.exports = function (access_token, refresh_token, client_id, client_secret
   this.client_id = client_id;
   this.client_secret = client_secret;
 
-  this.search = function(config, callback) {
-    request.get({
+  this.search = async function(config, callback) {
+    var response = await request.get({
       url: config.url || this.baseUrl + '/search?q=' + encodeURIComponent(config.searchString) + '&type=track',
       headers: this.headers,
       json: true
-    }, callback);
+    });
+
+    if(callback) {
+      callback(response);
+    }
   };
 
   this.getNewToken = function(callback) {
+    console.log('before - ' + this.access_token);
     var authOptions = {
       url: 'https://accounts.spotify.com/api/token',
       headers: {
@@ -23,7 +31,7 @@ module.exports = function (access_token, refresh_token, client_id, client_secret
       },
       form: {
         grant_type: 'refresh_token',
-        refresh_token: refresh_token
+        refresh_token: this.refresh_token
       },
       json: true
     };
@@ -33,7 +41,7 @@ module.exports = function (access_token, refresh_token, client_id, client_secret
         this.access_token = body.access_token;
         this.refresh_token = body.refresh_token;
         if (callback) {
-          callback();
+          callback(body.access_token);
         }
       }
     }.bind(this));
@@ -46,52 +54,39 @@ module.exports = function (access_token, refresh_token, client_id, client_secret
       headers: this.headers,
       json: true
     });
-    var error = null;
-    var body = null;
-    callback(error, response, body);
+
+    if(callback) {
+      callback(response);
+    }
   };
 
-  this.getCurrentlyPlaying = function(callback) {
+  this.getCurrentlyPlaying = async function(callback) {
     var currentlyPlayingOptions = {
       url: this.baseUrl + '/me/player/currently-playing?market=us',
       headers: this.headers,
       json: true
     };
 
-    request.get(currentlyPlayingOptions, function(error, response, body) {
-      if (!error) {
-        if (callback) {
-          callback(error, response, body);
-        }
-      } else {
-        this.getNewToken(function() {
-          this.getCurrentlyPlaying(callback);
-        }.bind(this));
-      }
-    }.bind(this));
+    var response = await request.get(currentlyPlayingOptions);
+    if(callback) {
+      callback(response);
+    }
   };
 
-  this.getPlaylistData = function(callback) {
+  this.getPlaylistData = async function(callback) {
     var playlistOptions = {
       url: this.baseUrl + '/playlists/' + this.playlistId + '/tracks',
       headers: this.headers,
       json: true
     };
 
-    request.get(playlistOptions, function(error, response, body) {
-      if (!error) {
-        if (callback) {
-          callback(error, response, body);
-        }
-      } else {
-        this.getNewToken(function() {
-          this.getPlaylistData(callback);
-        }.bind(this));
-      }
-    }.bind(this));
+    var response = await request.get(playlistOptions);
+    if(callback) {
+      callback(response);
+    }
   };
 
-  this.removeTracks = function(toBeRemoved, callback) {
+  this.removeTracks = async function(toBeRemoved, callback) {
     var options = {
       url: this.baseUrl + '/playlists/' + this.playlistId + '/tracks',
       headers: this.headers,
@@ -101,17 +96,10 @@ module.exports = function (access_token, refresh_token, client_id, client_secret
       },
       contentType: 'application/json',
     }
-    request.delete(options, function(error, response, body) {
-      if (!error) {
-        if (callback) {
-          callback(error, response, body);
-        }
-      } else {
-        this.getNewToken(function() {
-          this.removePlayedTracks(toBeRemoved, callback);
-        }.bind(this));
-      }
-    }.bind(this));
+    var response = await request.delete(options);
+    if(callback) {
+      callback(response);
+    }
   };
 
   this.pause = function() {

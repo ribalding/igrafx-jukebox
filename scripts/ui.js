@@ -127,13 +127,14 @@ define([
     };
   }
   function updateTopSection(currentlyPlaying, playlistData, playState, initialRender) {
+    var currentlyPlayingTrack = currentlyPlaying.item;
     var topSection = Mustache.render(templates.topArea, {
       isPlaying: playState === 'playing',
       isPaused: playState === 'paused',
       isStopped: playState === 'stopped',
-      currentlyPlayingImage: currentlyPlaying.item.album.images[1].url,
-      currentlyPlayingSong: currentlyPlaying.item.name,
-      currentlyPlayingArtist: currentlyPlaying.item.artists[0].name,
+      currentlyPlayingImage: currentlyPlayingTrack.album && currentlyPlayingTrack.album.images[1].url,
+      currentlyPlayingSong: currentlyPlayingTrack.name,
+      currentlyPlayingArtist: currentlyPlayingTrack.artists[0].name,
       initialRender: initialRender
     });
 

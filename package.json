@@ -16,6 +16,7 @@
     "mssql": "^5.1.0",
     "querystring": "~0.2.0",
     "request": "~2.83.0",
+    "request-promise": "^4.2.4",
     "socket.io": "^2.2.0"
   },
   "devDependencies": {

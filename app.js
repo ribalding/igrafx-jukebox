@@ -1,6 +1,6 @@
 var express = require('express'); // Express web server framework
 var app = express();
-var request = require('request'); // "Request" library
+var request = require('request-promise'); // "Request" library
 var cors = require('cors');
 var querystring = require('querystring');
 var cookieParser = require('cookie-parser');
