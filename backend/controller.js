@@ -29,7 +29,9 @@ module.exports = function (app, jukeboxManager, io, emitter, databaseLayer) {
       var track = req.query.title;
       this.jukeboxManager.addTrackToPlaylist(idString, function (body) {
         res.send({ response: body });
-        this.databaseLayer.addTrackToHistory(idString, track, artist);
+        if(idString && track && artist) {
+          this.databaseLayer.addTrackToHistory(idString, track, artist);
+        }
         this.updateAndEmit();
       }.bind(this));
     }.bind(this));

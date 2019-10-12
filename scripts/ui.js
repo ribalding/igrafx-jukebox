@@ -152,6 +152,7 @@ define([
     $('#viewPlaylist').off();
     $('#search').off();
     $('.playPauseIcon').off();
+    $(document).off('dragenter dragover drop');
     $('#searchButton').on('click', function() {
       var searchString = $('#search').val().trim();
       search(searchString);
@@ -179,7 +180,23 @@ define([
           console.log(response);
         });
       }
-    })
+    });
+
+    $(document).on('dragover dragenter', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+    });
+
+    $(document).on('drop', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var url = e.originalEvent.dataTransfer.getData('text/plain');
+      var pathArray = url.split('/');
+      var idString = pathArray[pathArray.length - 1];
+      if(idString) {
+        dataLayer.addToPlaylist(idString, null, null, function(){});
+      }
+    });
   }
 
   $(document).ready(function() {

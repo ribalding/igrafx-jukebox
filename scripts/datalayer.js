@@ -1,4 +1,4 @@
-define(['jquery', 'mustache'], function($, Mustache){
+define(['jquery'], function($){
   function DataLayer() {
     //Nothing for now
   }
