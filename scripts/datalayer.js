@@ -12,7 +12,7 @@ define(['jquery'], function($){
     search: async function(searchString, callback) {
       let response = await $.ajax({
         url: '/search',
-        data: {  searchString: searchString }
+        data: { searchString: searchString }
       });
       callback(response);
     },

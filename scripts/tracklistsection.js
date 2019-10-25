@@ -1,14 +1,26 @@
 define(['jquery', 'mustache', 'datalayer', 'util'], function($, Mustache, DataLayer, Util){
 
   var templates = {
+    searchBar: [
+      '<div class="searchBar itemRow">',
+        '<input id="search" class="input-sm" type="text"> ',
+        '<button id="searchButton" class="btn btn-primary">',
+          '<span class="glyphicon glyphicon-search"></span>',
+        '</button>',
+      '</div>'
+    ].join(''),
+
     trackList: [
+      '{{#searchResults}}', 
+        '{{>searchBar}}',
+      '{{/searchResults}}',
       '<div class="row itemRow">',
         '<div class="col-md-2"></div>',
         '<div class="col-md-3">',
           '<b>Artist</b>',
         '</div>',
         '<div class="col-md-6">',
-          '<b>Title</b>',
+          '<strong>Title</strong>',
         '</div>',
         '<div class="col-md-1"></div>',
       '</div>',
@@ -25,10 +37,10 @@ define(['jquery', 'mustache', 'datalayer', 'util'], function($, Mustache, DataLa
           '{{/albumArtUrl}}',
         '</div>',
         '<div class="col-md-3">',
-          '<p class="artistName">{{artistName}}</p>',
+          '<span class="artistName">{{artistName}}</span>',
         '</div>',
         '<div class="col-md-5">',
-          '<p class="trackName">{{trackName}}</p>',
+          '<span class="trackName">{{trackName}}</span>',
         '</div>',
           '<div class="col-md-1">',
             '{{trackLength}}',
@@ -44,16 +56,22 @@ define(['jquery', 'mustache', 'datalayer', 'util'], function($, Mustache, DataLa
           '{{/searchResults}}',
         '</div>',
       '</div>',
-    ].join('')
+    ].join(''),
   };
 
   function TrackListSection(dataLayer) {
-    this.playlistIsVisible = false;
-    this.$trackListSection = $('#searchResultSection');
+    this.playlistIsVisible = true;
+    this.$trackListSection = $('#trackListSection');
     this.dataLayer = dataLayer;
   }
 
   TrackListSection.prototype = {
+    updateTracklistSection: function(displayPlaylist) {
+      if(!displayPlaylist) {
+        
+      }
+    },
+
     displayPlaylist: function(playlistData, currentlyPlayingId) {
       if(currentlyPlayingId !== playlistData.items[0].track.id) {
         playlistData.items.shift(); // Extra catch in case the first song is an already removed track.  It's gross but oh well.
@@ -75,10 +93,25 @@ define(['jquery', 'mustache', 'datalayer', 'util'], function($, Mustache, DataLa
       });
     },
 
+    displaySearchSection: function() {
+      $('#searchButton').off();
+      $('#search').off();
+      $('#searchButton').on('click', function() {
+        var searchString = $('#search').val().trim();
+        search(searchString);
+      });
+
+      $('#search').on('keydown', function(e){
+        if(e.which === 13) {
+          $('#searchButton').trigger('click');
+        }
+      });
+    },
+
     displaySearchResults: function(response) {
       var self = this;
-      $('.addToPlaylist').off('click'); // Get rid of any leftover handlers from previous searches
       var tracks = response.response.tracks;
+      $('.addToPlaylist').off('click'); // Get rid of any leftover handlers from previous searches
       if (tracks) {
         var items = tracks.items;
         var searchResultsHtml = Mustache.render(templates.trackList, {
@@ -100,6 +133,11 @@ define(['jquery', 'mustache', 'datalayer', 'util'], function($, Mustache, DataLa
       }
     },
 
+    search: function(searchString) {
+      dataLayer.search(searchString, function(response) {
+        trackListSection.displaySearchResults(response);
+      });
+    },
 
     mapTrackListData: function(items) {
       return items.map(function(item, index){
