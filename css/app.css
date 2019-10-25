@@ -1,0 +1,142 @@
+#searchResultSection {
+  margin-top: 50px;
+  background-color: #eaeaea;
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 25px;
+  max-width: 100%;
+}
+
+.itemRow {
+  margin-top: 5px;
+  margin-bottom: 5px;
+  border-bottom-color: 1px solid lightgrey;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  font-size: 150%;
+}
+
+.itemRow:not(:first-child) {
+  border-top: 1px solid lightgrey;
+}
+
+.itemRow:first-child, .addToPlaylist{
+  font-size: x-large;
+}
+
+#time {
+  font-size: large;
+  white-space: nowrap;
+  float: right;
+}
+
+body {
+  background-color: #003366 !important;
+  font-family: 'Staatliches', cursive;
+  vertical-align: middle;
+}
+
+#topSection {
+  width: 100%;
+  height: 240px;
+  margin-top: 40px;
+  border: 3px solid lightgrey;
+  border-radius: 15px;
+  padding-top: 10px;
+  padding-right: 50px;
+  padding-bottom: 10px;
+  padding-left: 20px;
+}
+
+#topSection .row {
+  height: 100%;
+}
+
+.header, .currentlyPlaying, .nextUp, .loginHeader, .notCurrentlyPlaying, #time, .loading {
+  color: #f4f4f4 !important;
+}
+.notCurrentlyPlaying {
+  font-size: 300%;
+}
+
+.header {
+  font-size: 450%;
+  line-height: 80%;
+  text-align: right;
+}
+
+.addToPlaylist {
+  border-radius: 25px;
+}
+
+.currentlyPlayingImageContainer {
+  padding: 0;
+  padding-left: 30px;
+}
+
+#currentlyPlayingImage {
+  margin-top: 20px;
+  width: 170px;
+  height: 170px;
+  border: 2px solid lightgrey;
+  border-radius: 2px;
+}
+
+.nextUp {
+  margin-top: 55px;
+}
+
+#viewPlaylist{
+  position: absolute;
+  top: 155px;
+}
+
+.container {
+  width: 1400px;
+}
+
+.logoAndSearchSectionContainer {
+  height: 100%;
+  border-right: 2px solid lightgrey;
+  padding-left: 45px;
+  padding-right: 0;
+}
+
+.logoAndSearchSection {
+  margin-top: 35px;
+  width: 200px;
+}
+
+#search {
+  margin-left: 10px
+}
+
+.currentlyPlayingContainer {
+  padding-left: 0;
+}
+
+.loading {
+  font-size: 750%;
+  text-align: center;
+  margin-top: 30px;
+}
+
+.playlistImage {
+  width: 80px;
+  height: 80px;
+}
+
+#currentlyPlayingArtist {
+  margin-top:10px;
+}
+
+#currentlyPlayingSong{
+  margin-top: 30px;
+}
+
+.playPauseIcon {
+  cursor:pointer;
+  max-width: 40px;
+  display: block;
+  float: right;
+}
