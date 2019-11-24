@@ -1,7 +1,7 @@
 /* General  */
 
 body {
-  background-color: #003366;
+  background-color: black;
   font-family: 'Staatliches', cursive;
 }
 
@@ -12,7 +12,7 @@ body {
   text-align: right;
 }
 
-.header, .currentlyPlaying, .loginHeader, .notCurrentlyPlaying, #time, .loading {
+.header, .currentlyPlaying, .loginHeader, .notCurrentlyPlaying, #time, #loading {
   color: #eaeaea !important;
 }
 
@@ -34,10 +34,10 @@ body {
   padding-right: 20px;
 }
 
-.loading {
-  font-size: 750%;
+#loading {
+  font-size: 900%;
   text-align: center;
-  margin-top: 30px;
+  margin-top: 23%;
 }
 
 /* Top Section */
