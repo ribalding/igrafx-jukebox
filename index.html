@@ -2,21 +2,22 @@
 <html>
 
 <head>
-  <title>iGrafx Jukebox</title>
-  <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
-  <link href="https://fonts.googleapis.com/css?family=Staatliches" rel="stylesheet">
-  <link rel="stylesheet" href="css/app.css">
+   <title>iGrafx Jukebox</title>
+   <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+   <!-- ^ This will get changed to https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css eventually -->
+   <link href="https://fonts.googleapis.com/css?family=Staatliches" rel="stylesheet">
+   <link rel="stylesheet" href="css/app.css">
+   <link rel='stylesheet' href='css/spectrum.css' />
 </head>
 
 <body>
-  <div class="container">
-    <div id="loggedin">
-      <div id="topSection"><div class="loading">LOADING</div></div>
-      <div id="searchResultSection" class="container" style="display: none;"></div>
-    </div>
-  </div>
+   <div class="container">
+      <div id="loading">Loading...</div>
+      <div id="topSection" style="display:none;"></div>
+      <div id="trackListSection" style="display:none;"></div>
+   </div>
 
-  <script data-main="scripts/main" src="scripts/require.js"></script>
+   <script data-main="scripts/main" src="scripts/require.js"></script>
 </body>
 
 </html>

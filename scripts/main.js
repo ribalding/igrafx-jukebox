@@ -12,6 +12,8 @@ requirejs.config({
     },
     paths: {
       socketio: '../node_modules/socket.io-client/dist/socket.io',
+      jquery: 'thirdparty/jquery',
+      mustache: 'thirdparty/mustache'
     }
 });
 

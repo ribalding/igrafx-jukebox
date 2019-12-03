@@ -18,7 +18,10 @@ module.exports = function (app, jukeboxManager, io, emitter, databaseLayer) {
 
     this.app.get('/search', function (req, res) {
       var searchString = req.query.searchString;
-      this.jukeboxManager.search({searchString: searchString}, function (body) {
+
+      var searchBy = req.query.searchBy;
+      console.log(req.query.searchBy);
+      this.jukeboxManager.search({searchString: searchString, searchBy: searchBy}, function (body) {
         res.send({ response: body });
       }.bind(this));
     }.bind(this));
