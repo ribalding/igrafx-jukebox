@@ -9,10 +9,10 @@ define(['jquery'], function($){
       callback(response);
     },
 
-    search: async function(searchString, callback) {
+    search: async function(searchString, searchBy, callback) {
       let response = await $.ajax({
         url: '/search',
-        data: { searchString: searchString }
+        data: { searchString: searchString, searchBy: searchBy }
       });
       callback(response);
     },

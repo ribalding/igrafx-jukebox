@@ -1,10 +1,24 @@
 define(['jquery', 'mustache', 'datalayer', 'util'], function ($, Mustache, DataLayer, Util) {
-
+   /* 
+   This is for after bootstrap gets updated
+   <div class="input-group mb-3">
+      <input type="text" class="form-control" placeholder="Recipient's username" aria-label="Recipient's username" aria-describedby="basic-addon2">
+      <div class="input-group-append">
+         <span class="input-group-text" id="basic-addon2">@example.com</span>
+      </div>
+   </div> 
+   */
    var templates = {
       searchBar: [
          '<div class="searchBar itemRow">',
-            '<input id="search" class="input-sm" type="text"> ',
-            '<button id="searchButton" class="btn btn-primary">',
+            '<input id="search" aria-describedby="#searchButton" type="text" {{#searchString}}value="{{searchString}}"{{/searchString}}> ',
+            // '<select id="searchBy">',
+            //    '<option value="all">All</option>',
+            //    '<option value="artist">Artist</option>',
+            //    '<option value="track">Track</option>',
+            //    '<option value="album">Album</option>',
+            // '</select>',
+            '<button id="searchButton" class="btn btn-outline-secondary" type="button">',
                '<span class="glyphicon glyphicon-search"></span>',
             '</button>',
          '</div>'
@@ -20,21 +34,28 @@ define(['jquery', 'mustache', 'datalayer', 'util'], function ($, Mustache, DataL
       ].join(''),
 
       trackList: [
-         '<div class="row itemRow">',
-            '<div class="col-md-2"></div>',
-            '<div class="col-md-3">',
-               '<strong>Artist</strong>',
+         '{{#tracks.length}}',
+            '<div class="row itemRow">',
+               '<div class="col-md-2"></div>',
+               '<div class="col-md-3">',
+                  '<strong>Artist</strong>',
+               '</div>',
+               '<div class="col-md-6">',
+                  '<strong>Title</strong>',
+               '</div>',
+               '<div class="col-md-1"></div>',
             '</div>',
-            '<div class="col-md-6">',
-               '<strong>Title</strong>',
-            '</div>',
-            '<div class="col-md-1"></div>',
-         '</div>',
+         '{{/tracks.length}}',
          '{{#tracks}}',
             '{{>track}}',
          '{{/tracks}}',
+         // '{{#searchResults}}',
+         //    '{{#tracks.length}}',
+         //       '<button type="button" class="btn btn-primary btn-lg btn-block loadMore">Load More</button>',
+         //    '{{/tracks.length}}',
+         // '{{/searchResults}}',   
          '{{^tracks}}',
-            '<strong>No Results To Display</strong>',
+            '<div class="noSearchResults">No Results To Display</div>',
          '{{/tracks}}'
       ].join(''),
 
@@ -74,6 +95,7 @@ define(['jquery', 'mustache', 'datalayer', 'util'], function ($, Mustache, DataL
       this.playlistIsVisible = true;
       this.$trackListSection = $('#trackListSection');
       this.dataLayer = dataLayer;
+      this.searchBy = 'all';
       this.displayPlaylist();
    }
 
@@ -97,7 +119,7 @@ define(['jquery', 'mustache', 'datalayer', 'util'], function ($, Mustache, DataL
 
       displayPlaylist: function () {
          if (this.currentlyPlayingId !== this.playlistData.items[0].track.id) {
-            this.playlistData.items.shift(); // Extra catch in case the first song is an already removed track.  It's gross but oh well.
+            this.playlistData.items.shift(); // Extra catch in case the first song is an already removed track (due to async).  It's gross but oh well.
          }
          this.playlistIsVisible = true;
          var self = this;
@@ -110,66 +132,80 @@ define(['jquery', 'mustache', 'datalayer', 'util'], function ($, Mustache, DataL
             var $button = $(this);
             var $row = $button.closest('.itemRow');
             var trackId = $row.attr('data-track-id');
-            self.dataLayer.removeFromPlaylist(trackId, function (response) {
+            self.dataLayer.removeFromPlaylist(trackId, function(response) {
                $button.replaceWith('<strong><span class="text-danger">Removing...</span></strong>');
             });
          });
       },
 
       displaySearchSection: function () {
+         this.playlistIsVisible = false;
          var previousSearchResults = this.previousSearchResults || [];
          var searchSectionHtml = Mustache.render(templates.trackListWrapper, {
             tracks: previousSearchResults,
-            searchResults: true
+            searchResults: true,
+            searchString: this.previousSearchString,
          }, templates);
          this.$trackListSection.html(searchSectionHtml);
          this.assignSearchSectionHandlers();
       },
 
       displaySearchResults: function (response) {
-         var self = this;
          var tracks = response.response.tracks;
-         $('.addToPlaylist').off('click'); // Get rid of any leftover handlers from previous searches
          if (tracks) {
             var items = tracks.items;
+            var searchResultData = this.mapTrackListData(items);
+            this.previousSearchResults = searchResultData;
             var searchResultsHtml = Mustache.render(templates.trackList, {
-               tracks: this.mapTrackListData(items),
+               tracks: searchResultData,
                searchResults: true
             }, templates);
-            this.$trackListSection.html(searchResultsHtml).show();
+            this.$trackListSection.find('.tracklist').html(searchResultsHtml).show();
             this.playlistIsVisible = false;
-            $('.addToPlaylist').on('click', function () {
-               var $button = $(this);
-               var $row = $button.closest('.itemRow');
-               var trackId = $row.attr('data-track-id');
-               var artist = $row.find('.artistName').text();
-               var track = $row.find('.trackName').text();
-               self.dataLayer.addToPlaylist(trackId, artist, track, function () {
-                  $button.replaceWith('<b><span class="text-success">Added</span></b>');
-               });
-            });
+            this.assignSearchSectionHandlers();
          }
       },
 
       assignSearchSectionHandlers: function(){
          $('#searchButton').off();
          $('#search').off();
+         $('#searchBy').off();
          $('#searchButton').on('click', function () {
             var searchString = $('#search').val().trim();
-            search(searchString);
-         });
+            this.search(searchString, this.searchBy);
+            this.previousSearchString = searchString;
+         }.bind(this));
 
          $('#search').on('keydown', function (e) {
             if (e.which === 13) {
                $('#searchButton').trigger('click');
             }
          });
+
+         $('#searchBy').on('change', function(selection){
+            var newSearchBy = $(selection.target).val();
+            this.searchBy = newSearchBy;
+         }.bind(this));
+
+         var self = this;
+         $('.addToPlaylist').off('click'); // Get rid of any leftover handlers from previous searches
+         $('.addToPlaylist').on('click', function () {
+            var $button = $(this);
+            var $row = $button.closest('.itemRow');
+            var trackId = $row.attr('data-track-id');
+            var artist = $row.find('.artistName').text();
+            var track = $row.find('.trackName').text();
+            self.dataLayer.addToPlaylist(trackId, artist, track, function () {
+               self
+               $button.replaceWith('<b><span class="text-success">Added</span></b>');
+            });
+         });
       },
 
-      search: function (searchString) {
-         dataLayer.search(searchString, function (response) {
-            trackListSection.displaySearchResults(response);
-         });
+      search: function (searchString, searchBy) {
+         this.dataLayer.search(searchString, searchBy, function (response) {
+            this.displaySearchResults(response);
+         }.bind(this));
       },
 
       mapTrackListData: function (items) {

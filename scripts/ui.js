@@ -59,12 +59,10 @@ define([
       }
 
       if(!navbar) {
-         navbar = new Navbar($('#navbarSection'), function (playlistTabClicked) {
+         navbar = new Navbar($('#navbarSection'), function(playlistTabClicked) {
             trackListSection.toggle(playlistTabClicked);
          });
       }
-
-
    }
 
    $(document).ready(function () {

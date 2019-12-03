@@ -12,7 +12,7 @@ module.exports = function (access_token, refresh_token, client_id, client_secret
 
   this.search = async function(config, callback) {
     var response = await request.get({
-      url: config.url || this.baseUrl + '/search?q=' + encodeURIComponent(config.searchString) + '&type=track',
+      url: config.url || this.baseUrl + '/search?q=' + encodeURIComponent(config.searchString) + '&type=' + encodeURIComponent(config.searchBy),
       headers: this.headers,
       json: true
     });

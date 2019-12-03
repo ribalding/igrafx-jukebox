@@ -2,8 +2,8 @@ define(['jquery', 'mustache', 'datalayer', 'util'], function ($, Mustache, DataL
    var templates = {
       topSectionFrame: [
          '<div class="row">',
-            '<div class="col-md-3 logoAndSearchSectionContainer">',
-               '<div class="logoAndSearchSection">',
+            '<div class="col-md-3 logoSectionContainer">',
+               '<div class="logoSection">',
                   '<h1 class="header">iGrafx Jukebox</h1>',
                '</div>',
                '<div id="navbarSection"></div>',
@@ -61,7 +61,7 @@ define(['jquery', 'mustache', 'datalayer', 'util'], function ($, Mustache, DataL
          }
          if(initialRender) {
             var topSection = Mustache.render(templates.topSectionFrame, data, templates);
-            $('#topSection').html(topSection).show();;
+            $('#topSection').html(topSection).show();
          }
          else {
             var currentlyPlayingSection = Mustache.render(templates.topSectionCurrentlyPlaying, data);
@@ -100,9 +100,9 @@ define(['jquery', 'mustache', 'datalayer', 'util'], function ($, Mustache, DataL
             var pathArray = url.split('/');
             var idString = pathArray[pathArray.length - 1];
             if (idString) {
-               dataLayer.addToPlaylist(idString, null, null);
+               this.dataLayer.addToPlaylist(idString, null, null);
             }
-         });
+         }.bind(this));
 
          $('#colorSelect').on('change', function (e) {
             var newColor = $(e.target).val();
