@@ -1,6 +1,6 @@
 // JukeboxManager Module 
 // 
-// This is the main hub for all business logic.  It is basically designed to be a layer between the controller module
+// This is the main hub for all business logic.  It is basically layer between the controller module
 // receiving requests from the front end and the Spotify Accessor module which communicates with the Spotify API.  
 
 module.exports = function (spotifyAccessor, emitter, playlist_id, databaseLayer) {
@@ -112,18 +112,39 @@ module.exports = function (spotifyAccessor, emitter, playlist_id, databaseLayer)
       return toBeRemoved;
    }
 
+   /**
+    *   Add a random track to the playlist - either selected via a random search or from the jukebox history
+    */
    this.addRandomTrackToPlaylist = function (callback) {
-      var url = this.getUrlForRandomSong();
-      this.search({ url: url }, function (body) {
-         var randomTrackData = body.tracks.items[0];
-         var id = randomTrackData.id;
-         this.randomTrackIds[id] = true;
-         this.addTrackToPlaylist(id, callback);
-      }.bind(this));
+      var randomNumber = Math.floor(Math.random() * 10) + 1;
+      if(randomNumber < 6) {
+         this.getRandomTrackFromHistory(function(res) {
+            this.randomTrackIds[res] = true;
+            this.addTrackToPlaylist(res, callback);
+         }.bind(this));
+      }
+      else {
+         var url = this.getUrlForRandomSong();
+         this.search({ url: url }, function (body) {
+            var randomTrackData = body.tracks.items[0];
+            var id = randomTrackData.id;
+            this.randomTrackIds[id] = true;
+            this.addTrackToPlaylist(id, callback);
+         }.bind(this));
+      }
    };
 
-   this.getRandomTrackFromHistory = function(id) {
-      console.log()
+   this.getRandomTrackFromHistory = function(callback) {
+      this.databaseLayer.getRandomTrackFromHistory(function(err, result){
+         var res = result.recordset[0].SpotifyId;
+         console.log(res);
+         if(res.startsWith('spotify:track:')) {
+            res = res.slice(14)
+         }
+         if(callback) {
+            callback(res);
+         }
+      });
    }
 
    this.addTrackToPlaylist = function (id, callback) {

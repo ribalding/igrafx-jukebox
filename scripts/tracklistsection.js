@@ -89,8 +89,9 @@ define(['jquery', 'mustache', 'datalayer', 'util'], function ($, Mustache, DataL
       ].join(''),
    };
 
-   function TrackListSection(playlistData, currentlyPlayingId, dataLayer) {
+   function TrackListSection(playlistData, playState, currentlyPlayingId, dataLayer) {
       this.playlistData = playlistData;
+      this.playState = playState;
       this.currentlyPlayingId = currentlyPlayingId;
       this.playlistIsVisible = true;
       this.$trackListSection = $('#trackListSection');
@@ -109,8 +110,9 @@ define(['jquery', 'mustache', 'datalayer', 'util'], function ($, Mustache, DataL
          }
       },
 
-      updatePlaylistData: function(playlistData, currentlyPlayingId) {
+      updatePlaylistData: function(playlistData, playState, currentlyPlayingId) {
          this.playlistData = playlistData;
+         this.playState = playState;
          this.currentlyPlayingId = currentlyPlayingId;
          if(this.playlistIsVisible) {
             this.displayPlaylist();
@@ -118,7 +120,7 @@ define(['jquery', 'mustache', 'datalayer', 'util'], function ($, Mustache, DataL
       },
 
       displayPlaylist: function () {
-         if (this.currentlyPlayingId !== this.playlistData.items[0].track.id) {
+         if (this.currentlyPlayingId !== this.playlistData.items[0].track.id && this.playState === 'playing') {
             this.playlistData.items.shift(); // Extra catch in case the first song is an already removed track (due to async).  It's gross but oh well.
          }
          this.playlistIsVisible = true;

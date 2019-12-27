@@ -15,29 +15,31 @@ define(['jquery', 'mustache', 'datalayer', 'util'], function ($, Mustache, DataL
       ].join(''),
 
       topSectionCurrentlyPlaying: [
-            '{{^isStopped}}',
-               '<div class="col-md-2 currentlyPlayingImageContainer">',
-                  '<img id="currentlyPlayingImage" src="{{currentlyPlayingImage}}">',
-                  '<input type="color" id="colorSelect" value="{{themeColor}}">',
-               '</div>',
-               '<div class="col-md-6 currentlyPlayingContainer">',
-                  '<h2 class="currentlyPlaying">',
-                     '<div id="currentlyPlayingSong">{{currentlyPlayingSong}}</div>',
-                  '</h2>',
-                  '<h3 id="currentlyPlayingArtist" class="currentlyPlaying">{{currentlyPlayingArtist}}</h3>',
-                  '<h4 id="time"></h4>',
-                  '<img class="playPauseIcon" src="../res/images/{{#isPaused}}play.png{{/isPaused}}{{#isPlaying}}pause.png{{/isPlaying}}">',
-               '</div>',
-            '{{/isStopped}}',
-            '{{#isStopped}}',
-               '<div class="col-md-9">',
-                  '<h3 class="notCurrentlyPlaying">The iGrafx Jukebox is Currently Not Playing</h3>',
-               '</div>',
-            '{{/isStopped}}',
+         '{{^isStopped}}',
+            '<div class="col-md-2 currentlyPlayingImageContainer">',
+               '<img id="currentlyPlayingImage" src="{{currentlyPlayingImage}}">',
+               '<input type="color" id="colorSelect" value="{{themeColor}}">',
+           '</div>',
+            '<div class="col-md-6 currentlyPlayingContainer">',
+               '<h2 class="currentlyPlaying">',
+                 '<div id="currentlyPlayingSong">{{currentlyPlayingSong}}</div>',
+               '</h2>',
+               '<h3 id="currentlyPlayingArtist" class="currentlyPlaying">{{currentlyPlayingArtist}}</h3>',
+               '<h4 id="time"></h4>',
+               '<img class="playPauseIcon" src="../res/images/{{#isPaused}}play.png{{/isPaused}}{{#isPlaying}}pause.png{{/isPlaying}}">',
+            '</div>',
+         '{{/isStopped}}',
+         '{{#isStopped}}',
+            '<div class="col-md-9">',
+               '<h3 class="notCurrentlyPlaying">The iGrafx Jukebox is Currently Not Playing</h3>',
+            '</div>',
+         '{{/isStopped}}',
       ].join('')
    }
 
    function TopSection(currentlyPlaying, playlistData, playState, dataLayer, themeColor) {
+      console.log(currentlyPlaying);
+      console.log(playlistData);
       this.currentlyPlaying = currentlyPlaying;
       this.playlistData = playlistData;
       this.playState = playState;
@@ -48,7 +50,10 @@ define(['jquery', 'mustache', 'datalayer', 'util'], function ($, Mustache, DataL
 
    TopSection.prototype = {
       _render: function (initialRender) {
-         var currentlyPlayingTrack = this.currentlyPlaying.item;
+         var currentlyPlayingTrack;
+         if(this.currentlyPlaying) {
+            currentlyPlayingTrack = this.currentlyPlaying.item;
+         }
          var playState = this.playState;
          var data = {
             isPlaying: playState === 'playing',
@@ -109,7 +114,7 @@ define(['jquery', 'mustache', 'datalayer', 'util'], function ($, Mustache, DataL
             $('body').css('background-color', newColor);
             localStorage.setItem('themeColor', newColor);
             this.themeColor = newColor;
-         });
+         }.bind(this));
       },
 
       _setTimeRemaining: function (response) {
