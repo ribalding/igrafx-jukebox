@@ -4,6 +4,7 @@ module.exports = function (sql, pool) {
 
    var addTrackQuery = "INSERT INTO history (SpotifyId, [TrackTitle], [TrackArtist]) VALUES (@spotify_id, @track_title, @track_artist)";
    var selectTrackQuery = "SELECT * FROM history WHERE ID = @id"
+   var selectRandomTrackQuery = "SELECT TOP (1) [SpotifyId] FROM history ORDER BY NEWID()";
 
    this.addTrackToHistory = function (idString, trackTitle, trackArtist) {
       try {
@@ -18,9 +19,13 @@ module.exports = function (sql, pool) {
       }
    }
 
-   this.getTrackFromHistory = function (id) {
+   this.getRandomTrackFromHistory = function (callback) {
       try {
-         return this.pool.request().input('id', sql.Int, id).query(selectTrackQuery);
+         this.pool.request().query(selectRandomTrackQuery, (err, result) => {
+            if(callback) {
+               callback(err, result);
+            }
+         });
       }
       catch (err) {
 

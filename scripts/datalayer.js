@@ -6,7 +6,7 @@ define(['jquery'], function($){
   DataLayer.prototype = {
     getJukeboxData: async function(callback) {
       let response = await $.get('/jukebox');
-      callback(response);
+      callback && callback(response);
     },
 
     search: async function(searchString, searchBy, callback) {
@@ -14,7 +14,7 @@ define(['jquery'], function($){
         url: '/search',
         data: { searchString: searchString, searchBy: searchBy }
       });
-      callback(response);
+      callback && callback(response);
     },
 
     addToPlaylist: async function(idString, artist, title, callback) {
@@ -26,7 +26,7 @@ define(['jquery'], function($){
           title: title 
         }
       });
-      callback(response);
+      callback && callback(response);
     },
 
     removeFromPlaylist: async function(idString, callback) {
@@ -34,17 +34,17 @@ define(['jquery'], function($){
         url: '/remove',
         data : { idString: idString }
       });
-      callback(response);
+      callback && callback(response);
     },
 
     play: async function(callback) {
       let response = await $.ajax({ url:'/play' });
-      callback(response);
+      callback && callback(response);
     },
 
     pause: async function(callback) {
       let response = await $.ajax({ url:'/pause' });
-      callback(response);
+      callback && callback(response);
     }
   }
 

@@ -19,6 +19,8 @@ define([
    var topSection;
    var navbar;
    var themeColor;
+   var currentlyPlaying;
+   var playlistData;
 
    socket.on('update playlist', function (data) {
       update(data.currentlyPlaying, data.playlistData, data.playState);
@@ -52,10 +54,10 @@ define([
       }
 
       if(!trackListSection) {
-         trackListSection = new TrackListSection(pd, cp.item.id, dataLayer);
+         trackListSection = new TrackListSection(pd, ps, cp.item.id, dataLayer);
       }
       else {
-         trackListSection.updatePlaylistData(pd, cp.item.id);
+         trackListSection.updatePlaylistData(pd, ps, cp.item.id);
       }
 
       if(!navbar) {

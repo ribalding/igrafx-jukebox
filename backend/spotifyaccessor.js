@@ -40,6 +40,7 @@ module.exports = function (access_token, refresh_token, client_id, client_secret
       if (!error && response.statusCode === 200) {
         this.access_token = body.access_token;
         this.refresh_token = body.refresh_token;
+        this.headers = { 'Authorization': 'Bearer ' + body.access_token };
         if (callback) {
           callback(body.access_token);
         }
